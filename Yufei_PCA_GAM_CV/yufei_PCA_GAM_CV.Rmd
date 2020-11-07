@@ -1,0 +1,184 @@
+---
+title: "Homework 1"
+author: "Yufei Lin, Jingfeng Xia"
+date: "Nov 7 2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+library(pander)
+library(knitr)
+library(skimr)
+library(kableExtra)
+library(tinytex)
+library(dplyr)
+library(purrr)
+local({
+  hook_inline = knitr::knit_hooks$get('inline')
+  knitr::knit_hooks$set(inline = function(x) {
+    res = hook_inline(x)
+    if (is.numeric(x)) sprintf('$%s$', res) else res
+  })
+})
+```
+
+```{r libraries}
+#install.packages('pls')
+#install.packages('randomForest')
+library(pls)
+library(randomForest)
+library(gam)
+```
+
+## Data Processing
+
+### Read in Data
+
+```{r readData}
+curDir = getwd()
+setwd(curDir)
+vault = read.csv("./SourceData/test.csv")
+HousePricing = read.csv("./SourceData/train.csv")
+```
+
+### Seperate into Test and Training Set
+
+```{r separateData}
+set.seed(1)
+randS = sample(1:nrow(HousePricing), nrow(HousePricing)/2)
+train = HousePricing[randS,]
+test = HousePricing[-randS,]
+summary(test)
+```
+
+### Feature Engineering
+
+In this section, we convert all unnecessary NAs into suitable value based on the observation from data description on Kaggle website. 
+
+```{r fe}
+# Currently I have solved this by replacing all NA with 0 in excel,
+# for some reason the replacement does not work in R. 
+```
+
+
+## Prediction Algorithms
+
+### 1. PCA
+
+```{r PCA}
+set.seed(2)
+# Need help with PCA analysis
+#pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
+```
+
+### 2. Random Forest
+
+```{r rf}
+rfTrain=randomForest(SalePrice~.,data=train, mtry=6,importance =TRUE, na.action=na.roughfix)
+rfYhat = predict(rfTrain ,newdata=test)
+print("The test MSE is shown in the following: ")
+mean((rfYhat-test$SalePrice)^2)
+```
+
+```{r rf2}
+temp = importance(rfTrain)
+temp = as.data.frame(temp)
+names(temp)[names(temp)=="%IncMSE"] <- "importance"
+sort(temp$importance, decreasing = TRUE)
+```
+```{r rf3}
+pander(temp, title="Importance of each factor according to random forest")
+```
+
+From the random forest analysis, we have discovered that the top three most important factors for predicting sale price are the following:
+
+\begin{enumerate}
+\item GrLivArea
+\item Neighbourhood
+\item OverallQual
+\end{enumerate}
+
+Therefore, we will make GAM models according to these three factors. 
+
+```{r GAM}
+fit1 = gam(SalePrice ~ GrLivArea + Neighborhood + OverallQual, data = HousePricing)
+print("Deviance of Model 1")
+deviance(fit1)
+```
+
+From this we know that the deviance is quite large, we need a better model. 
+
+## Cross Validation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
