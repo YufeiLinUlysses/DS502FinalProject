@@ -5,7 +5,7 @@
 5) Open you're command prompt and navigate to wherever you want to clone the repository
 6) Type "git clone " and then the link you copied
 	Example: git clone https://github.com/woes-lynne/DS502FinalProject.git
-7) Once the repository is cloned, you should see a folder labeled DS501CaseStudy3 with all the files in it
+7) Once the repository is cloned, you should see a folder labeled DS502FinalProject with all the files in it
 8) Create a folder with your name (e.g Shijing_Lasso/)
 9) Navigate to your folder to make whatever changes you want
 10) When you're done, go back into command prompt (terminal) and navigate to the mother folder with the repository
@@ -19,3 +19,5 @@
 Every time you start working on your notebook, you should type "git pull" to make sure you have everyone's latest code.
 
 Every time you want to upload more changes, repeat steps 9-14
+
+P.s. Just in case things get really messy, please just edit within your own folder and do not edit someone else's folder :)
