@@ -1,0 +1,492 @@
+---
+title: "Homework 1"
+author: "Yufei Lin, Jingfeng Xia"
+date: "Nov 7 2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+library(pander)
+library(knitr)
+library(skimr)
+library(kableExtra)
+library(tinytex)
+library(dplyr)
+library(purrr)
+local({
+  hook_inline = knitr::knit_hooks$get('inline')
+  knitr::knit_hooks$set(inline = function(x) {
+    res = hook_inline(x)
+    if (is.numeric(x)) sprintf('$%s$', res) else res
+  })
+})
+```
+
+```{r libraries, include=FALSE}
+#install.packages('pls')
+#install.packages('randomForest')
+#install.packages('caret', dependencies = c('Depends', 'Suggests'))
+#install.packages('caret')
+#library(caret)
+library(pls)
+library(randomForest)
+library(gam)
+library(glmnet)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+```
+
+Variable Name: 
+1. HousePricing:1400 dataset
+2. train: training data
+
+## Data Processing
+
+### Read in Data
+
+```{r readData}
+curDir = getwd()
+setwd(curDir)
+vault = read.csv("./SourceData/test.csv")
+HousePricing = read.csv("./SourceData/train.csv")
+```
+
+### Pairs of Categories (Iris)
+
+```{r pairsOfCategories}
+#pander(summary(HousePricing))
+#pairs(HousePricing, main="Pairs plot for the house pricing dataset")
+print("Hi")
+```
+
+### Feature Engineering
+
+
+
+In this section, we convert all missing value based on the following rules:
+
+\begin{enumerate}
+\item Categorical: fill in most common
+\item Numeric: fill in median/average
+\end{enumerate}
+
+Convert all train to HousePricing
+
+```{r fe, include=FALSE}
+# Currently I have solved this by replacing all NA with 0 in excel,
+# for some reason the replacement does not work in R. 
+
+#PoolQC
+# replace NA with No
+HousePricing$PoolQC[is.na(HousePricing$PoolQC)] = 'No'
+# label encoding 
+quailty = c('No'=0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+HousePricing$PoolQC<-recode(HousePricing$PoolQC,'No'=0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+ggplot(HousePricing,aes(x=PoolQC,y=SalePrice))+geom_point()
+table(HousePricing$PoolQC)
+
+# PoolArea
+HousePricing[HousePricing$PoolArea>0 & HousePricing$PoolQC==0, c('PoolArea', 'PoolQC', 'OverallQual')]
+table(HousePricing$MiscFeature)
+HousePricing$MiscFeature[is.na(HousePricing$MiscFeature)] = 'None'
+HousePricing$MiscFeature = as.factor(HousePricing$MiscFeature)
+ggplot(HousePricing,aes(x=MiscFeature,y=SalePrice))+geom_point()
+
+table(HousePricing$Alley)
+HousePricing$Alley[is.na(HousePricing$Alley)] = 'None'
+HousePricing$Alley=recode(HousePricing$Alley,'None' = 0,'Pave' = 1,'Grvl' = 2)
+ggplot(HousePricing,aes(x=Alley,y=SalePrice))+geom_point()
+
+
+table(HousePricing$Fence)
+HousePricing$Fence[is.na(HousePricing$Fence)] = 'No'
+HousePricing$Fence=recode(HousePricing$Fence,'No' = 0,'MnWw' = 1,'GdWo' = 2,'MnPrv' = 3,'GdPrv' = 4)
+ggplot(HousePricing,aes(x=Fence,y=SalePrice))+geom_point()
+
+table(HousePricing$FireplaceQu)
+HousePricing$FireplaceQu[is.na(HousePricing$FireplaceQu)] = 'No'
+HousePricing$FireplaceQu=recode(HousePricing$FireplaceQu,'No' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+ggplot(HousePricing,aes(x=FireplaceQu,y=SalePrice))+geom_point()
+
+# LotFrontage
+table(HousePricing$LotFrontage)
+HousePricing$LotFrontage[is.na(HousePricing$LotFrontage)]
+
+
+# replace the NA with median of its neighborhood
+for (i in 1:nrow(HousePricing)){
+  if (is.na(HousePricing$LotFrontage[i])){
+    HousePricing$LotFrontage[i] = as.integer(median(HousePricing$LotFrontage[HousePricing$Neighborhood==HousePricing$Neighborhood[i]],na.rm = TRUE))
+  }
+}
+HousePricing$LotFrontage[is.na(HousePricing$LotFrontage)]
+HousePricing$LotFrontage=as.factor(HousePricing$LotFrontage)
+
+# Garage
+table(HousePricing$GarageYrBlt)
+HousePricing$GarageYrBlt[is.na(HousePricing$GarageYrBlt)]
+ggplot(HousePricing,aes(x=GarageYrBlt,y=SalePrice))+geom_point()
+length(which(is.na(HousePricing$GarageType)))
+HousePricing$GarageType[is.na(HousePricing$GarageType)] = 'No'
+HousePricing$GarageYrBlt[is.na(HousePricing$GarageYrBlt)] <- HousePricing$YearBuilt[is.na(HousePricing$GarageYrBlt)]
+HousePricing$GarageFinish[is.na(HousePricing$GarageFinish)] = 'No'
+HousePricing$GarageQual[is.na(HousePricing$GarageQual)] = 'No'
+HousePricing$GarageCond[is.na(HousePricing$GarageCond)] = 'No'
+
+
+length(which(is.na(HousePricing$BsmtQual) & is.na(HousePricing$BsmtCond) & is.na(HousePricing$BsmtExposure) & is.na(HousePricing$BsmtFinType1) & is.na(HousePricing$BsmtFinType2)))
+HousePricing[!is.na(HousePricing$BsmtFinType1) & (is.na(HousePricing$BsmtCond)|is.na(HousePricing$BsmtQual)|is.na(HousePricing$BsmtExposure)|is.na(HousePricing$BsmtFinType2)), c('BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2')]
+
+HousePricing$BsmtFinType2[333] = names(sort(table(HousePricing$BsmtFinType2),decreasing = TRUE))[1]
+HousePricing$BsmtExposure[949] = names(sort(table(HousePricing$BsmtExposure),decreasing = TRUE))[1]
+
+table(HousePricing$BsmtQual)
+HousePricing$BsmtQual[is.na(HousePricing$BsmtQual)] = 'No'
+HousePricing$BsmtQual=recode(HousePricing$BsmtQual,'No' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+
+table(HousePricing$BsmtCond)
+HousePricing$BsmtCond[is.na(HousePricing$BsmtCond)] = 'No'
+HousePricing$BsmtCond=recode(HousePricing$BsmtCond,'No' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+
+HousePricing$BsmtExposure[is.na(HousePricing$BsmtExposure)]='None'
+HousePricing$BsmtExposure=recode(HousePricing$BsmtExposure,'None' = 0,'No' = 1,'Mn' = 2,'Av' = 3,'Gd' = 4)
+
+HousePricing$BsmtFinType1[is.na(HousePricing$BsmtFinType1)] = 'None'
+HousePricing$BsmtFinType1=recode(HousePricing$BsmtFinType1,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5,'GLQ' = 6)
+
+HousePricing$BsmtFinType2[is.na(HousePricing$BsmtFinType2)] = 'None'
+HousePricing$BsmtFinType2=recode(HousePricing$BsmtFinType2,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5,'GLQ' = 6)
+
+table(HousePricing$MasVnrType)
+HousePricing$MasVnrType[is.na(HousePricing$MasVnrType)] = 'None'
+median(HousePricing$SalePrice[HousePricing$MasVnrType=='BrkCmn'])
+median(HousePricing$SalePrice[HousePricing$MasVnrType=='BrkFace'])
+median(HousePricing$SalePrice[HousePricing$MasVnrType=='None'])
+median(HousePricing$SalePrice[HousePricing$MasVnrType=='Stone'])
+HousePricing$MasVnrType=recode(HousePricing$MasVnrType,'BrkCmn' = 0,'None' = 0,'BrkFace' = 1,'Stone' = 2)
+
+table(HousePricing$MasVnrArea)
+
+HousePricing$MasVnrArea[(is.na(HousePricing$MasVnrArea))] = 0
+
+table(HousePricing$Electrical)
+HousePricing$Electrical[is.na(HousePricing$Electrical)] <- names(sort(-table(HousePricing$Electrical)))[1]
+HousePricing$Electrical=as.factor(HousePricing$Electrical)
+
+HousePricing
+table(HousePricing$MSZoning)
+HousePricing$MSZoning = as.factor(HousePricing$MSZoning)
+
+table(HousePricing$Street)
+HousePricing$Street=recode(HousePricing$Street,'Pave' = 0,'Grvl' = 1)
+
+table(HousePricing$LotShape)
+HousePricing$LotShape=recode(HousePricing$LotShape,'IR3' = 0,'IR2' = 1,'IR1' = 2,'Reg' =2)
+
+table(HousePricing$Utilities)
+HousePricing$Utilities=recode(HousePricing$Utilities,'ELO' = 0,'NoSeWa' = 1,'NoSewr' = 2,'AllPub' =2)
+
+table(HousePricing$LotConfig)
+HousePricing$LotConfig = as.factor(HousePricing$LotConfig)
+
+table(HousePricing$Condition1)
+HousePricing$Condition1 = as.factor(HousePricing$Condition1)
+
+table(HousePricing$Condition2)
+HousePricing$Condition2 = as.factor(HousePricing$Condition2)
+
+HousePricing$LandContour = as.factor(HousePricing$LandContour)
+
+table(HousePricing$RoofStyle)
+HousePricing$RoofStyle = as.factor(HousePricing$RoofStyle)
+
+table(HousePricing$LandSlope)
+HousePricing$LandSlope=recode(HousePricing$LandSlope,'Sev' = 0,'Mod' = 1,'Gtl' = 2)
+
+table(HousePricing$BldgType)
+HousePricing$BldgType = as.factor(HousePricing$BldgType)
+
+table(HousePricing$HouseStyle)
+HousePricing$HouseStyle=as.factor(HousePricing$HouseStyle)
+
+table(HousePricing$RoofMatl)
+HousePricing$RoofMatl=as.factor(HousePricing$RoofMatl)
+
+table(HousePricing$Exterior1st)
+HousePricing$Exterior1st=as.factor(HousePricing$Exterior1st)
+
+
+table(HousePricing$Exterior2nd)
+HousePricing$Exterior2nd=as.factor(HousePricing$Exterior2nd)
+
+table(HousePricing$ExterQual)
+HousePricing$ExterQual=recode(HousePricing$ExterQual,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+table(HousePricing$ExterCond)
+HousePricing$ExterCond=recode(HousePricing$ExterCond,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+table(HousePricing$Foundation)
+HousePricing$Foundation = as.factor(HousePricing$Foundation)
+
+table(HousePricing$Heating)
+HousePricing$Heating = as.factor(HousePricing$Heating)
+
+table(HousePricing$HeatingQC)
+HousePricing$HeatingQC=recode(HousePricing$HeatingQC,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+HousePricing
+table(HousePricing$CentralAir)
+HousePricing$CentralAir=recode(HousePricing$CentralAir,'N' = 0,'Y' = 1)
+
+table(HousePricing$KitchenQual)
+HousePricing$KitchenQual=recode(HousePricing$KitchenQua,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+table(HousePricing$Functional)
+HousePricing$Functional=recode(HousePricing$Functional,'Sal' = 0,'Sev' = 1,'Maj2' = 2,'Maj1' = 3,'Mod' = 4,'Min2' = 5,'Min1' = 6,'Typ' = 7)
+
+table(HousePricing$GarageType)
+HousePricing$GarageType=as.factor(HousePricing$GarageType)
+
+table(HousePricing$GarageFinish)
+HousePricing$GarageFinish=recode(HousePricing$GarageFinish,'No' = 0,'Unf' = 1,'RFn' = 2,'Fin' = 3)
+
+table(HousePricing$GarageQual)
+HousePricing$GarageQual=recode(HousePricing$GarageQual,'No' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing
+
+table(HousePricing$GarageCond)
+HousePricing$GarageCond=recode(HousePricing$GarageCond,'No' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+
+table(HousePricing$PavedDrive)
+HousePricing$PavedDrive=recode(HousePricing$PavedDrive,'N' = 0,'P' = 1,'Y' = 2)
+
+table(HousePricing$SaleType)
+HousePricing$SaleType = as.factor(HousePricing$SaleType)
+
+table(HousePricing$SaleCondition)
+HousePricing$SaleCondition = as.factor(HousePricing$SaleCondition)
+
+HousePricing$MoSold = as.factor(HousePricing$MoSold)
+
+HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
+
+numericVars = which(sapply(HousePricing, is.numeric))
+numericVars
+factorVars = which(sapply(HousePricing, is.factor))
+factorVars
+all_numVar = HousePricing[,numericVars];all_numVar
+cor_numVar =(cor(all_numVar))
+cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+cor_sorted
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+numeric = select_if(HousePricing,is.numeric)
+snumeric = scale(numeric,center = T,scale = T)
+factor = select_if(HousePricing,is.factor)
+factor
+# one hot
+factor = model.matrix(~.-1,factor) %>% as.data.frame()
+factor
+# newdata = cbind(snumeric,factor)
+
+```
+
+### Boostraping (Yufei Lin)
+
+```{r bootstraping}
+set.seed(1)
+sample = sample(dim(HousePricing)[1],dim(HousePricing)[1],replace = T)
+```
+
+
+### Seperate into Test and Training Set
+
+Spearate by 70% train, 30% test. 
+
+Convert to CSV upload
+
+
+```{r separateData}
+set.seed(1)
+randS = sample(1:nrow(HousePricing), nrow(HousePricing)/2)
+train = HousePricing[randS,]
+test = HousePricing[-randS,]
+```
+
+## Hierachical
+
+Each team member bootstraps training data. 
+
+## Prediction Algorithms
+
+Each model needs a cross validation algorithm
+Remember to report RMSE
+
+### 1. PCA (Iris)
+
+```{r PCA}
+set.seed(2)
+# Need help with PCA analysis
+# pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
+```
+
+#### Cross Validation
+
+### 2. Random Forest (Yufei Lin)
+
+```{r rf}
+rfTrain=randomForest(SalePrice~.,data=train, mtry=6,importance =TRUE, na.action=na.roughfix)
+rfYhat = predict(rfTrain ,newdata=test)
+print("The test MSE is shown in the following: ")
+mean((rfYhat-test$SalePrice)^2)
+```
+
+```{r rf2}
+temp = importance(rfTrain)
+temp = as.data.frame(temp)
+names(temp)[names(temp)=="%IncMSE"] <- "importance"
+sort(temp$importance, decreasing = TRUE)
+```
+```{r rf3}
+pander(temp, title="Importance of each factor according to random forest")
+```
+
+From the random forest analysis, we have discovered that the top three most important factors for predicting sale price are the following:
+
+\begin{enumerate}
+\item GrLivArea
+\item Neighbourhood
+\item OverallQual
+\end{enumerate}
+
+#### Cross Validation
+
+Therefore, we will make GAM models according to these three factors. 
+
+### 3. GAM (Yufei Lin)
+
+```{r GAM}
+fit1 = gam(SalePrice ~ GrLivArea + Neighborhood + OverallQual, data = HousePricing)
+print("Deviance of Model 1")
+deviance(fit1)
+```
+
+From this we know that the deviance is quite large, we need a better model. 
+
+#### Cross Validation
+
+### 4. Lasso & Ridge (Jinhong)
+
+```{r LassoRidge}
+#LASSO
+LassoAlpha=1
+LassoLambda = 10^(seq(3,-1,length=100))
+set.seed(12)
+XTrain = model.matrix(SalePrice~.,data = train1)[,-1]
+XTest = model.matrix(SalePrice~.,test1)[,-1]
+YTrain = train1$SalePrice
+YTest = test1$SalePrice
+set.seed(123)
+LassoFit = glmnet(XTrain, YTrain, alpha=LassoAlpha, lambda=LassoLambda)
+LassoFitcv = cv.glmnet(XTrain, YTrain, alpha = LassoAlpha, lambda = LassoLambda)
+bestlambda = LassoFitcv$lambda.min;bestlambda
+plot(LassoFitcv)
+LassoPred <- predict(LassoFit, s= bestlambda, newx = XTest)
+sqrt(mean((LassoPred -YTest)^2))
+predict(LassoFit, s = bestlambda, type="coefficients")
+```
+
+#### Cross Validation
+
+### 5. Splines (Jingfeng)
+
+#### Cross Validation
+
+### 6. Linear Regression (Yanze)
+
+#### Cross Validation
+
+### 7. Ensemble
+
+## Evaluation of different models
+
+Root MSE
+
+## Choose best fit model
+
+## Discussion & Future Development
+
+## Resources
+https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
