@@ -1,0 +1,1147 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\usepackage[usenames,dvipsnames]{color}
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={Yufei Lin, Jingfeng Xia},
+            pdftitle={Homework 1},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\ImportTok}[1]{{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{{#1}}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{{#1}}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{{#1}}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{{#1}}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{{#1}}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{{#1}}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{{#1}}}}
+\newcommand{\BuiltInTok}[1]{{#1}}
+\newcommand{\ExtensionTok}[1]{{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{{#1}}}
+\newcommand{\RegionMarkerTok}[1]{{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{{#1}}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{{#1}}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{{#1}}}}
+\newcommand{\NormalTok}[1]{{#1}}
+\usepackage{longtable,booktabs}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+
+\title{Homework 1}
+\author{Yufei Lin, Jingfeng Xia}
+\date{Nov 7 2020}
+
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+\begin{document}
+\maketitle
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{#install.packages('pls')}
+\CommentTok{#install.packages('randomForest')}
+\KeywordTok{library}\NormalTok{(pls)}
+\KeywordTok{library}\NormalTok{(randomForest)}
+\KeywordTok{library}\NormalTok{(gam)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Data Processing}\label{data-processing}
+
+\subsubsection{Read in Data}\label{read-in-data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{curDir =}\StringTok{ }\KeywordTok{getwd}\NormalTok{()}
+\KeywordTok{setwd}\NormalTok{(curDir)}
+\NormalTok{vault =}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{"./SourceData/test.csv"}\NormalTok{)}
+\NormalTok{HousePricing =}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{"./SourceData/train.csv"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Seperate into Test and Training
+Set}\label{seperate-into-test-and-training-set}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{set.seed}\NormalTok{(}\DecValTok{1}\NormalTok{)}
+\NormalTok{randS =}\StringTok{ }\KeywordTok{sample}\NormalTok{(}\DecValTok{1}\NormalTok{:}\KeywordTok{nrow}\NormalTok{(HousePricing), }\KeywordTok{nrow}\NormalTok{(HousePricing)/}\DecValTok{2}\NormalTok{)}
+\NormalTok{train =}\StringTok{ }\NormalTok{HousePricing[randS,]}
+\NormalTok{test =}\StringTok{ }\NormalTok{HousePricing[-randS,]}
+\KeywordTok{summary}\NormalTok{(test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##        Id           MSSubClass        MSZoning    LotFrontage    
+##  Min.   :   1.0   Min.   : 20.00   C (all):  8   Min.   :  0.00  
+##  1st Qu.: 396.2   1st Qu.: 20.00   FV     : 32   1st Qu.: 44.00  
+##  Median : 776.5   Median : 50.00   RH     : 10   Median : 64.00  
+##  Mean   : 755.1   Mean   : 58.15   RL     :574   Mean   : 58.96  
+##  3rd Qu.:1119.8   3rd Qu.: 75.00   RM     :106   3rd Qu.: 79.00  
+##  Max.   :1460.0   Max.   :190.00                 Max.   :313.00  
+##                                                                  
+##     LotArea        Street     Alley     LotShape  LandContour  Utilities  
+##  Min.   :  1300   Grvl:  6   0   :689   IR1:224   Bnk: 28     AllPub:729  
+##  1st Qu.:  7500   Pave:724   Grvl: 22   IR2: 21   HLS: 30     NoSeWa:  1  
+##  Median :  9552              Pave: 19   IR3:  5   Low: 20                 
+##  Mean   : 10585                         Reg:480   Lvl:652                 
+##  3rd Qu.: 11439                                                           
+##  Max.   :215245                                                           
+##                                                                           
+##    LotConfig   LandSlope  Neighborhood   Condition1    Condition2    BldgType  
+##  Corner :132   Gtl:686   0mes   :113   Norm   :638   Norm   :724   1Fam  :595  
+##  CulDSac: 35   Mod: 37   CollgCr: 72   Feedr  : 38   Artery :  2   2fmCon: 15  
+##  FR2    : 28   Sev:  7   OldTown: 54   Artery : 26   Feedr  :  1   Duplex: 32  
+##  FR3    :  0             NridgHt: 48   RRAn   : 10   PosA   :  1   Twnhs : 25  
+##  Inside :535             Edwards: 45   RRAe   :  6   PosN   :  1   TwnhsE: 63  
+##                          Somerst: 43   PosN   :  5   RRAn   :  1               
+##                          (Other):355   (Other):  7   (Other):  0               
+##    HouseStyle   OverallQual      OverallCond      YearBuilt     YearRemodAdd 
+##  1Story :374   Min.   : 1.000   Min.   :2.000   Min.   :1880   Min.   :1950  
+##  2Story :213   1st Qu.: 5.000   1st Qu.:5.000   1st Qu.:1954   1st Qu.:1967  
+##  1.5Fin : 75   Median : 6.000   Median :5.000   Median :1975   Median :1994  
+##  SLvl   : 37   Mean   : 6.096   Mean   :5.568   Mean   :1972   Mean   :1985  
+##  SFoyer : 17   3rd Qu.: 7.000   3rd Qu.:6.000   3rd Qu.:2001   3rd Qu.:2004  
+##  1.5Unf :  6   Max.   :10.000   Max.   :9.000   Max.   :2010   Max.   :2010  
+##  (Other):  8                                                                 
+##    RoofStyle      RoofMatl    Exterior1st   Exterior2nd    MasVnrType 
+##  Flat   :  6   CompShg:719   VinylSd:253   VinylSd:246   0      :  4  
+##  Gable  :567   Tar&Grv:  5   MetalSd:121   MetalSd:117   BrkCmn :  5  
+##  Gambrel:  6   WdShngl:  3   HdBoard:117   HdBoard:105   BrkFace:225  
+##  Hip    :148   WdShake:  2   Wd Sdng: 86   Wd Sdng: 90   None   :425  
+##  Mansard:  2   Membran:  1   Plywood: 59   Plywood: 75   Stone  : 71  
+##  Shed   :  1   ClyTile:  0   CemntBd: 31   CmentBd: 31                
+##                (Other):  0   (Other): 63   (Other): 66                
+##    MasVnrArea     ExterQual ExterCond  Foundation  BsmtQual BsmtCond
+##  Min.   :   0.0   Ex: 30    Ex:  3    BrkTil: 71   0 : 20   0 : 20  
+##  1st Qu.:   0.0   Fa:  7    Fa: 11    CBlock:318   Ex: 63   Fa: 21  
+##  Median :   0.0   Gd:236    Gd: 64    PConc :323   Fa: 17   Gd: 38  
+##  Mean   : 108.4   TA:457    Po:  1    Slab  : 14   Gd:309   Po:  0  
+##  3rd Qu.: 168.8             TA:651    Stone :  2   TA:321   TA:651  
+##  Max.   :1378.0                       Wood  :  2                    
+##                                                                     
+##  BsmtExposure BsmtFinType1   BsmtFinSF1     BsmtFinType2   BsmtFinSF2     
+##  0 : 21       0  : 20      Min.   :   0.0   0  : 21      Min.   :   0.00  
+##  Av: 99       ALQ:114      1st Qu.:   0.0   ALQ:  9      1st Qu.:   0.00  
+##  Gd: 71       BLQ: 72      Median : 401.0   BLQ: 18      Median :   0.00  
+##  Mn: 56       GLQ:224      Mean   : 460.5   GLQ:  7      Mean   :  45.61  
+##  No:483       LwQ: 35      3rd Qu.: 738.8   LwQ: 23      3rd Qu.:   0.00  
+##               Rec: 61      Max.   :2188.0   Rec: 28      Max.   :1080.00  
+##               Unf:204                       Unf:624                       
+##    BsmtUnfSF       TotalBsmtSF    Heating    HeatingQC CentralAir Electrical 
+##  Min.   :   0.0   Min.   :   0   Floor:  1   Ex:362    N: 39      0    :  0  
+##  1st Qu.: 203.2   1st Qu.: 780   GasA :714   Fa: 23    Y:691      FuseA: 38  
+##  Median : 441.5   Median : 990   GasW : 10   Gd:124               FuseF: 11  
+##  Mean   : 547.0   Mean   :1053   Grav :  3   Po:  0               FuseP:  1  
+##  3rd Qu.: 775.0   3rd Qu.:1318   OthW :  0   TA:221               Mix  :  0  
+##  Max.   :2121.0   Max.   :3206   Wall :  2                        SBrkr:680  
+##                                                                              
+##    X1stFlrSF      X2ndFlrSF       LowQualFinSF       GrLivArea   
+##  Min.   : 334   Min.   :   0.0   Min.   :  0.000   Min.   : 334  
+##  1st Qu.: 876   1st Qu.:   0.0   1st Qu.:  0.000   1st Qu.:1124  
+##  Median :1081   Median :   0.0   Median :  0.000   Median :1456  
+##  Mean   :1161   Mean   : 330.5   Mean   :  4.197   Mean   :1495  
+##  3rd Qu.:1392   3rd Qu.: 708.8   3rd Qu.:  0.000   3rd Qu.:1740  
+##  Max.   :3228   Max.   :1872.0   Max.   :572.000   Max.   :4316  
+##                                                                  
+##   BsmtFullBath    BsmtHalfBath        FullBath       HalfBath     
+##  Min.   :0.000   Min.   :0.00000   Min.   :0.00   Min.   :0.0000  
+##  1st Qu.:0.000   1st Qu.:0.00000   1st Qu.:1.00   1st Qu.:0.0000  
+##  Median :0.000   Median :0.00000   Median :2.00   Median :0.0000  
+##  Mean   :0.437   Mean   :0.06301   Mean   :1.57   Mean   :0.3685  
+##  3rd Qu.:1.000   3rd Qu.:0.00000   3rd Qu.:2.00   3rd Qu.:1.0000  
+##  Max.   :2.000   Max.   :1.00000   Max.   :3.00   Max.   :2.0000  
+##                                                                   
+##   BedroomAbvGr    Kitche0bvGr    KitchenQual  TotRmsAbvGrd    Functio0l 
+##  Min.   :0.000   Min.   :1.000   Ex: 54      Min.   : 2.000   Maj1:  6  
+##  1st Qu.:2.000   1st Qu.:1.000   Fa: 19      1st Qu.: 5.000   Maj2:  3  
+##  Median :3.000   Median :1.000   Gd:287      Median : 6.000   Min1: 18  
+##  Mean   :2.875   Mean   :1.056   TA:370      Mean   : 6.493   Min2: 16  
+##  3rd Qu.:3.000   3rd Qu.:1.000               3rd Qu.: 7.000   Mod :  8  
+##  Max.   :6.000   Max.   :2.000               Max.   :12.000   Sev :  1  
+##                                                               Typ :678  
+##    Fireplaces     FireplaceQu   GarageType   GarageYrBlt   GarageFinish
+##  Min.   :0.0000   0 :350      0      : 44   Min.   :   0   0  : 44     
+##  1st Qu.:0.0000   Ex: 12      2Types :  4   1st Qu.:1960   Fin:173     
+##  Median :1.0000   Fa: 13      Attchd :433   Median :1978   RFn:224     
+##  Mean   :0.6082   Gd:196      Basment: 12   Mean   :1860   Unf:289     
+##  3rd Qu.:1.0000   Po:  7      BuiltIn: 42   3rd Qu.:2001               
+##  Max.   :3.0000   TA:152      CarPort:  7   Max.   :2010               
+##                               Detchd :188                              
+##    GarageCars      GarageArea     GarageQual GarageCond PavedDrive
+##  Min.   :0.000   Min.   :   0.0   0 : 44     0 : 44     N: 40     
+##  1st Qu.:1.000   1st Qu.: 352.0   Ex:  2     Ex:  1     P: 16     
+##  Median :2.000   Median : 482.0   Fa: 23     Fa: 18     Y:674     
+##  Mean   :1.767   Mean   : 475.1   Gd:  8     Gd:  2               
+##  3rd Qu.:2.000   3rd Qu.: 576.0   Po:  0     Po:  2               
+##  Max.   :4.000   Max.   :1248.0   TA:653     TA:663               
+##                                                                   
+##    WoodDeckSF      OpenPorchSF     EnclosedPorch      X3SsnPorch     
+##  Min.   :  0.00   Min.   :  0.00   Min.   :  0.00   Min.   :  0.000  
+##  1st Qu.:  0.00   1st Qu.:  0.00   1st Qu.:  0.00   1st Qu.:  0.000  
+##  Median :  0.00   Median : 22.00   Median :  0.00   Median :  0.000  
+##  Mean   : 94.17   Mean   : 45.33   Mean   : 21.79   Mean   :  2.886  
+##  3rd Qu.:169.50   3rd Qu.: 65.00   3rd Qu.:  0.00   3rd Qu.:  0.000  
+##  Max.   :736.00   Max.   :547.00   Max.   :330.00   Max.   :304.000  
+##                                                                      
+##   ScreenPorch        PoolArea     PoolQC     Fence     MiscFeature
+##  Min.   :  0.00   Min.   :  0.0   0 :728   0    :587   0   :700   
+##  1st Qu.:  0.00   1st Qu.:  0.0   Ex:  0   GdPrv: 25   Gar2:  1   
+##  Median :  0.00   Median :  0.0   Fa:  1   GdWo : 32   Othr:  1   
+##  Mean   : 13.79   Mean   :  1.5   Gd:  1   MnPrv: 82   Shed: 27   
+##  3rd Qu.:  0.00   3rd Qu.:  0.0            MnWw :  4   TenC:  1   
+##  Max.   :480.00   Max.   :576.0                                   
+##                                                                   
+##     MiscVal             MoSold           YrSold        SaleType   SaleCondition
+##  Min.   :    0.00   Min.   : 1.000   Min.   :2006   WD     :629   Abnorml: 59  
+##  1st Qu.:    0.00   1st Qu.: 5.000   1st Qu.:2007   New    : 64   AdjLand:  0  
+##  Median :    0.00   Median : 6.000   Median :2008   COD    : 21   Alloca :  7  
+##  Mean   :   53.03   Mean   : 6.292   Mean   :2008   ConLD  :  5   Family :  7  
+##  3rd Qu.:    0.00   3rd Qu.: 8.000   3rd Qu.:2009   ConLw  :  4   Normal :592  
+##  Max.   :15500.00   Max.   :12.000   Max.   :2010   ConLI  :  3   Partial: 65  
+##                                                     (Other):  4                
+##    SalePrice     
+##  Min.   : 34900  
+##  1st Qu.:129600  
+##  Median :160600  
+##  Mean   :181329  
+##  3rd Qu.:215000  
+##  Max.   :755000  
+## 
+\end{verbatim}
+
+\subsubsection{Feature Engineering}\label{feature-engineering}
+
+In this section, we convert all unnecessary NAs into suitable value
+based on the observation from data description on Kaggle website.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Currently I have solved this by replacing all NA with 0 in excel,}
+\CommentTok{# for some reason the replacement does not work in R. }
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Prediction Algorithms}\label{prediction-algorithms}
+
+\subsubsection{1. PCA}\label{pca}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{set.seed}\NormalTok{(}\DecValTok{2}\NormalTok{)}
+\CommentTok{# Need help with PCA analysis}
+\CommentTok{#pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{2. Random Forest}\label{random-forest}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rfTrain=}\KeywordTok{randomForest}\NormalTok{(SalePrice~.,}\DataTypeTok{data=}\NormalTok{train, }\DataTypeTok{mtry=}\DecValTok{6}\NormalTok{,}\DataTypeTok{importance =}\OtherTok{TRUE}\NormalTok{, }\DataTypeTok{na.action=}\NormalTok{na.roughfix)}
+\NormalTok{rfYhat =}\StringTok{ }\KeywordTok{predict}\NormalTok{(rfTrain ,}\DataTypeTok{newdata=}\NormalTok{test)}
+\KeywordTok{print}\NormalTok{(}\StringTok{"The test MSE is shown in the following: "}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "The test MSE is shown in the following: "
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{((rfYhat-test$SalePrice)^}\DecValTok{2}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 1066370931
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{temp =}\StringTok{ }\KeywordTok{importance}\NormalTok{(rfTrain)}
+\NormalTok{temp =}\StringTok{ }\KeywordTok{as.data.frame}\NormalTok{(temp)}
+\KeywordTok{names}\NormalTok{(temp)[}\KeywordTok{names}\NormalTok{(temp)==}\StringTok{"%IncMSE"}\NormalTok{] <-}\StringTok{ "importance"}
+\KeywordTok{sort}\NormalTok{(temp$importance, }\DataTypeTok{decreasing =} \OtherTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  [1] 17.0165805 14.6396422 14.3804097 11.3432457 11.3252649 11.0803219
+##  [7] 10.8442110  9.7307720  9.5903425  9.3398960  9.3228800  9.2399692
+## [13]  9.0918306  8.6665417  8.0934299  7.9818180  7.7833588  7.6148368
+## [19]  7.3383848  7.2505400  6.9147177  6.8963129  6.7623038  6.0894719
+## [25]  6.0243481  5.8570122  5.8453338  5.7344228  4.9267802  4.9214221
+## [31]  4.9179879  4.7575993  4.6577276  4.6461006  4.5045584  4.4889300
+## [37]  4.4169840  4.3721631  4.3050122  4.1228497  4.1207557  4.0039098
+## [43]  3.8947097  3.7686206  3.0789742  2.6792650  2.4509828  2.3792374
+## [49]  2.3601484  2.1045215  1.9171621  1.8225149  1.6961293  1.6393663
+## [55]  1.5393781  1.3906253  1.3447144  0.9266134  0.8786982  0.8407066
+## [61]  0.8076229  0.7318058  0.6969641  0.5745699  0.4723516  0.1409855
+## [67]  0.0000000  0.0000000 -0.1494808 -0.1675596 -0.5267200 -0.8747581
+## [73] -1.1194777 -1.1224986 -1.1926411 -1.2034331 -1.4898769 -2.0869449
+## [79] -2.6096805 -3.2285895
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{pander}\NormalTok{(temp, }\DataTypeTok{title=}\StringTok{"Importance of each factor according to random forest"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[c]{@{}ccc@{}}
+\toprule
+\begin{minipage}[b]{0.25\columnwidth}\centering\strut
+~
+\strut\end{minipage} &
+\begin{minipage}[b]{0.16\columnwidth}\centering\strut
+importance
+\strut\end{minipage} &
+\begin{minipage}[b]{0.19\columnwidth}\centering\strut
+IncNodePurity
+\strut\end{minipage}\tabularnewline
+\midrule
+\endhead
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Id}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-2.087
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.401e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MSSubClass}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+6.762
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.907e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MSZoning}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+7.615
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.048e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LotFrontage}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-0.1495
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.972e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LotArea}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+7.338
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+9.639e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Street}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+0
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Alley}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.5746
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.057e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LotShape}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+2.451
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.98e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LandContour}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+2.105
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+9.174e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Utilities}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+0
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LotConfig}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-1.119
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.015e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LandSlope}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-0.8748
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.201e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Neighborhood}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+14.64
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.031e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Condition1}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.121
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+9.141e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Condition2}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.9266
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.306e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BldgType}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.505
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+6.65e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{HouseStyle}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+6.915
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.94e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{OverallQual}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+14.38
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.155e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{OverallCond}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+7.251
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.55e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{YearBuilt}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+9.34
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.598e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{YearRemodAdd}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+8.667
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+7.126e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{RoofStyle}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-0.5267
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.076e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{RoofMatl}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-1.203
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.602e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Exterior1st}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.918
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+4.753e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Exterior2nd}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.921
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+5.516e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MasVnrType}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.004
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.52e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MasVnrArea}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.658
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+5.434e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{ExterQual}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+11.33
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.116e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{ExterCond}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.539
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+4.231e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Foundation}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+6.089
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.131e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtQual}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+5.734
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.14e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtCond}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+3.079
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+4.343e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtExposure}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.8076
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.164e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtFinType1}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.646
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.767e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtFinSF1}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+6.024
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+8.662e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtFinType2}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.696
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.049e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtFinSF2}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.141
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+5.615e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtUnfSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.372
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.077e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{TotalBsmtSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+11.08
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.631e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Heating}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-0.1676
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.257e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{HeatingQC}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.927
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.502e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{CentralAir}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.305
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+7.939e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Electrical}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.8407
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.798e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{X1stFlrSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+9.731
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.387e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{X2ndFlrSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+10.84
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.13e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{LowQualFinSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-1.193
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+848554186
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GrLivArea}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+17.02
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.189e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtFullBath}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+3.895
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.158e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BsmtHalfBath}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-1.122
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+910528158
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{FullBath}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+6.896
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.051e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{HalfBath}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+5.857
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.724e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{BedroomAbvGr}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.758
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.489e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Kitche0bvGr}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+2.679
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.183e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{KitchenQual}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+8.093
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.498e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{TotRmsAbvGrd}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+5.845
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+8.734e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Functio0l}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.639
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+8.348e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Fireplaces}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+9.092
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+5.852e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{FireplaceQu}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+9.59
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+8.616e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageType}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+7.783
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+4.958e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageYrBlt}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+9.24
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.209e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageFinish}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+7.982
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+9.176e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageCars}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+11.34
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.028e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageArea}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+9.323
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.147e+11
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageQual}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.489
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+6.132e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{GarageCond}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+3.769
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+7.115e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{PavedDrive}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.917
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+3.812e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{WoodDeckSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.123
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.822e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{OpenPorchSF}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+4.417
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+4.994e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{EnclosedPorch}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.697
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+6.085e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{X3SsnPorch}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.391
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+626796305
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{ScreenPorch}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.345
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+6.633e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{PoolArea}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-1.49
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.243e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{PoolQC}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-2.61
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+2.605e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{Fence}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+2.36
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.359e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MiscFeature}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.7318
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+582766091
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MiscVal}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.8787
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+576558679
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{MoSold}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+0.4724
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.698e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{YrSold}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+-3.229
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+9.169e+09
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{SaleType}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+2.379
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.618e+10
+\strut\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.25\columnwidth}\centering\strut
+\textbf{SaleCondition}
+\strut\end{minipage} &
+\begin{minipage}[t]{0.16\columnwidth}\centering\strut
+1.823
+\strut\end{minipage} &
+\begin{minipage}[t]{0.19\columnwidth}\centering\strut
+1.833e+10
+\strut\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+From the random forest analysis, we have discovered that the top three
+most important factors for predicting sale price are the following:
+
+\begin{enumerate}
+\item GrLivArea
+\item Neighbourhood
+\item OverallQual
+\end{enumerate}
+
+Therefore, we will make GAM models according to these three factors.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fit1 =}\StringTok{ }\KeywordTok{gam}\NormalTok{(SalePrice ~}\StringTok{ }\NormalTok{GrLivArea +}\StringTok{ }\NormalTok{Neighborhood +}\StringTok{ }\NormalTok{OverallQual, }\DataTypeTok{data =} \NormalTok{HousePricing)}
+\KeywordTok{print}\NormalTok{(}\StringTok{"Deviance of Model 1"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "Deviance of Model 1"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{deviance}\NormalTok{(fit1)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 1.962681e+12
+\end{verbatim}
+
+From this we know that the deviance is quite large, we need a better
+model.
+
+\subsection{Cross Validation}\label{cross-validation}
+
+\end{document}

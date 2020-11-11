@@ -1,39 +1,7 @@
----
-title: "Homework 1"
-author: "Yufei Lin, Jingfeng Xia"
-date: "Nov 7 2020"
-output:
-  pdf_document: default
-  word_document: default
-  html_document:
-    df_print: paged
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-knitr::opts_chunk$set(warning = FALSE)
-knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
-library(pander)
-library(knitr)
-library(skimr)
-library(kableExtra)
-library(tinytex)
-library(dplyr)
-library(purrr)
-local({
-  hook_inline = knitr::knit_hooks$get('inline')
-  knitr::knit_hooks$set(inline = function(x) {
-    res = hook_inline(x)
-    if (is.numeric(x)) sprintf('$%s$', res) else res
-  })
-})
-```
-
-```{r checkVersion}
-# check R version
-R.Version()$major
-```
-```{r libraries, include=FALSE}
+install.packages("pander")
+install.packages("knitr")
+install.packages("skimr")
+install.packages("kableExtra")
 library(pander)
 library(knitr)
 library(skimr)
@@ -47,41 +15,14 @@ library(gam)
 library(glmnet)
 library(ggplot2)
 library(corrplot)
-```
-
-Variable Name: 
-1. HousePricing:1400 dataset
-2. train: training data
-
-## Data Processing
 
 ### Read in Data
-
-```{r readData}
+setwd("C:\\users\\huawe\\Desktop\\DS502FinalProject")
 vault = read.csv("./SourceData/test.csv")
 HousePricing = read.csv("./SourceData/train.csv")
-```
-
-### Pairs of Categories (Iris)
-
-```{r pairsOfCategories}
-#pander(summary(HousePricing))
-#pairs(HousePricing, main="Pairs plot for the house pricing dataset")
-print("Hi")
-```
 
 ### Feature Engineering
 
-In this section, we convert all missing value based on the following rules:
-
-\begin{enumerate}
-\item Categorical: fill in most common
-\item Numeric: fill in median/average
-\end{enumerate}
-
-Convert all train to HousePricing
-
-```{r fe, include=FALSE}
 # remove the irrational data point
 ggplot(HousePricing,aes(x=GrLivArea,y=SalePrice))+geom_point()
 HousePricing = HousePricing[HousePricing$GrLivArea<4500,]
@@ -92,6 +33,7 @@ sort(colSums(sapply(HousePricing[NAcol], is.na)), decreasing = TRUE)
 
 # remove NA 
 HousePricing$PoolQC[is.na(HousePricing$PoolQC)] = 'None'
+
 quailty = c('None'=0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
 HousePricing$PoolQC<-recode(HousePricing$PoolQC,'None'=0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
 
@@ -187,9 +129,7 @@ HousePricing$SaleType = as.factor(HousePricing$SaleType)
 HousePricing$SaleCondition = as.factor(HousePricing$SaleCondition)
 HousePricing$MoSold = as.factor(HousePricing$MoSold)
 HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
-```
 
-```{r prepareNewData}
 numvar = which(sapply(HousePricing, is.numeric))
 catvar = which(sapply(HousePricing, is.factor))
 numdata = HousePricing[,numvar]
@@ -202,210 +142,18 @@ corrplot.mixed(numcor, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, 
 # standardize numerical data 
 numeric = select_if(HousePricing,is.numeric)
 stnumer = scale(numeric,center = T,scale = T)
-convFact = select_if(HousePricing,is.factor)
+factor = select_if(HousePricing,is.factor)
+#dim(factor)
+#factor
 # one hot
-convFact = model.matrix(~.-1,convFact) %>% as.data.frame()
-dim(stnumer)
-dim(convFact)
-#head(convFact)
+factor = model.matrix(~.-1,factor) %>% as.data.frame()
+
 # put standardized numerical data and categorical data in one data
-# ï¿½ï¿½ï¿½ï¿½ÇºÏ²ï¿½Ö®ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿?
-newdata = cbind(stnumer,convFact)
+# Õâ¸öÊÇºÏ²¢Ö®ºóµÄÐÂµÄÊý¾Ý Ãû×ÖÄã¸ÄÒ»¸Ä
+newdata = cbind(stnumer,factor)
 
-```
-
-### Boostraping
-
-```{r bootstraping}
+# bootstrap
 set.seed(1234)
-sample = sample(dim(newdata)[1],dim(newdata)[1],replace = T)
-# sample
-# ï¿½ï¿½ï¿½ï¿½Å»Ø³ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
+sample = sample(dim(newdata)[1],dim(newdata)[1],replace = T);sample
+# Ëæ»ú·Å»Ø³éÈ¡µÄÐÂÊý¾Ý
 btnewdata = newdata[sample,]
-```
-
-
-### Seperate into Test and Training Set
-
-Spearate by 70% train, 30% test. 
-
-Convert to CSV upload
-
-
-```{r separateData}
-set.seed(1)
-randS = sample(1:nrow(btnewdata), nrow(btnewdata)*0.7)
-train = btnewdata[randS,]
-test = btnewdata[-randS,]
-write.csv(train,"./SourceData/train_p.csv", row.names = FALSE)
-write.csv(test,"./SourceData/test_p.csv", row.names = FALSE)
-```
-
-## Hierachical
-
-Each team member bootstraps training data. 
-
-## Prediction Algorithms
-
-Each model needs a cross validation algorithm
-Remember to report RMSE
-
-### 1. PCA (Iris)
-
-```{r PCA}
-set.seed(2)
-# Need help with PCA analysis
-# pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
-```
-
-#### Cross Validation
-
-### 2. Random Forest (Yufei Lin)
-
-```{r rf}
-rfTrain=randomForest(SalePrice~.,data=train, mtry=6,importance =TRUE, na.action=na.roughfix)
-rfYhat = predict(rfTrain ,newdata=test)
-print("The test MSE is shown in the following: ")
-mean((rfYhat-test$SalePrice)^2)
-```
-
-```{r rf2}
-temp = importance(rfTrain)
-temp = as.data.frame(temp)
-names(temp)[names(temp)=="%IncMSE"] <- "importance"
-sort(temp$importance, decreasing = TRUE)
-```
-```{r rf3}
-pander(temp, title="Importance of each factor according to random forest")
-```
-
-From the random forest analysis, we have discovered that the top three most important factors for predicting sale price are the following:
-
-\begin{enumerate}
-\item GrLivArea
-\item Neighbourhood
-\item OverallQual
-\end{enumerate}
-
-#### Cross Validation
-
-Therefore, we will make GAM models according to these three factors. 
-
-### 3. GAM (Yufei Lin)
-
-```{r GAM}
-fit1 = gam(SalePrice ~ GrLivArea + Neighborhood + OverallQual, data = HousePricing)
-print("Deviance of Model 1")
-deviance(fit1)
-```
-
-From this we know that the deviance is quite large, we need a better model. 
-
-#### Cross Validation
-
-### 4. Lasso & Ridge (Jinhong)
-
-```{r LassoRidge}
-#LASSO
-LassoAlpha=1
-LassoLambda = 10^(seq(3,-1,length=100))
-set.seed(12)
-XTrain = model.matrix(SalePrice~.,data = train1)[,-1]
-XTest = model.matrix(SalePrice~.,test1)[,-1]
-YTrain = train1$SalePrice
-YTest = test1$SalePrice
-set.seed(123)
-LassoFit = glmnet(XTrain, YTrain, alpha=LassoAlpha, lambda=LassoLambda)
-LassoFitcv = cv.glmnet(XTrain, YTrain, alpha = LassoAlpha, lambda = LassoLambda)
-bestlambda = LassoFitcv$lambda.min;bestlambda
-plot(LassoFitcv)
-LassoPred <- predict(LassoFit, s= bestlambda, newx = XTest)
-sqrt(mean((LassoPred -YTest)^2))
-predict(LassoFit, s = bestlambda, type="coefficients")
-```
-
-#### Cross Validation
-
-### 5. Splines (Jingfeng)
-
-#### Cross Validation
-
-### 6. Linear Regression (Yanze)
-
-#### Cross Validation
-
-### 7. Ensemble
-
-## Evaluation of different models
-
-Root MSE
-
-## Choose best fit model
-
-## Discussion & Future Development
-
-## Resources
-https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
