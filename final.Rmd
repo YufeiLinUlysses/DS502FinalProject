@@ -47,6 +47,11 @@ library(gam)
 library(glmnet)
 library(ggplot2)
 library(corrplot)
+library(tidyverse)
+library(caret)
+library(mgcv)
+library(Metrics)
+library(visreg)
 ```
 
 Variable Name: 
@@ -57,9 +62,12 @@ Variable Name:
 
 ### Read in Data
 
+Drop ID!!!!
+
 ```{r readData}
 vault = read.csv("./SourceData/test.csv")
 HousePricing = read.csv("./SourceData/train.csv")
+HousePricing = subset(HousePricing,select=-Id)
 ```
 
 ### Pairs of Categories (Iris)
@@ -198,19 +206,16 @@ corsorted = as.matrix(sort(numcor[,"SalePrice"],decreasing = TRUE))
 CorHigh <- names(which(apply(corsorted, 1, function(x) abs(x)>0.5)))
 numcor <- numcor[CorHigh, CorHigh]
 corrplot.mixed(numcor, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-
+temp = subset(HousePricing,select=-SalePrice)
 # standardize numerical data 
-numeric = select_if(HousePricing,is.numeric)
+numeric = select_if(temp,is.numeric)
 stnumer = scale(numeric,center = T,scale = T)
-convFact = select_if(HousePricing,is.factor)
+convFact = select_if(temp,is.factor)
 # one hot
 convFact = model.matrix(~.-1,convFact) %>% as.data.frame()
-dim(stnumer)
-dim(convFact)
-#head(convFact)
-# put standardized numerical data and categorical data in one data
-# ����Ǻϲ�֮����µ����� �������һ��?
-newdata = cbind(stnumer,convFact)
+SalePrice = HousePricing$SalePrice
+# put standardized numerical data and categorical data in one data?
+newdata = cbind(stnumer,convFact,SalePrice)
 
 ```
 
@@ -219,8 +224,6 @@ newdata = cbind(stnumer,convFact)
 ```{r bootstraping}
 set.seed(1234)
 sample = sample(dim(newdata)[1],dim(newdata)[1],replace = T)
-# sample
-# ����Żس�ȡ��������?
 btnewdata = newdata[sample,]
 ```
 
@@ -237,8 +240,24 @@ set.seed(1)
 randS = sample(1:nrow(btnewdata), nrow(btnewdata)*0.7)
 train = btnewdata[randS,]
 test = btnewdata[-randS,]
-write.csv(train,"./SourceData/train_p.csv", row.names = FALSE)
-write.csv(test,"./SourceData/test_p.csv", row.names = FALSE)
+dim(train)
+dim(test)
+```
+```{r writeToCSV}
+#write.csv(train,"./SourceData/train_p.csv", row.names = FALSE)
+#write.csv(test,"./SourceData/test_p.csv", row.names = FALSE)
+```
+
+```{r newCSVTestTrain}
+test = read.csv("./SourceData/test_p.csv")
+y_test = test$SalePrice
+x_test = subset (test, select = -SalePrice)
+train = read.csv("./SourceData/train_p.csv")
+y_train = train$SalePrice
+x_train = subset (train, select = -SalePrice)
+y_train = as.numeric(y_train)
+y_test = as.numeric(y_test)
+summary(y_train)
 ```
 
 ## Hierachical
@@ -262,46 +281,140 @@ set.seed(2)
 
 ### 2. Random Forest (Yufei Lin)
 
-```{r rf}
-rfTrain=randomForest(SalePrice~.,data=train, mtry=6,importance =TRUE, na.action=na.roughfix)
-rfYhat = predict(rfTrain ,newdata=test)
+#### Prepare Model
+
+We have $199$ independent variables in the data set, therefore we have set mtry(Number of randomly selected variables for each split) to be the square root of that number for maximum performance of the model. 
+
+```{r rf-preparemodel}
+# Need to figure out how many independent variables then set mtry
+# set mtry to be square root of total number of independent variables
+totalIV = length(colnames(train))
+rfTrain=randomForest(SalePrice~.,data=train, mtry=sqrt(totalIV)+10,importance =TRUE)
+pander(rfTrain)
+```
+
+#### Check Accuracy
+
+If we raise the allowance to $\$$10000 We could raise the prediction accuracy to almost 95% of a time.
+
+```{r rfAccuracy}
+rfYhat = predict(rfTrain, newdata=x_test)
+head(rfYhat)
+head(y_test)
+#table(y_test, rfYhat)
+accuracy = mean(abs(y_test - rfYhat)<=10000)
+accuracy
+```
+
+Then let us take a look at the MSE of this model: 
+```{r rfMSE}
+#rfYhat = predict(rfTrain ,newdata=test)
 print("The test MSE is shown in the following: ")
 mean((rfYhat-test$SalePrice)^2)
 ```
 
-```{r rf2}
-temp = importance(rfTrain)
-temp = as.data.frame(temp)
-names(temp)[names(temp)=="%IncMSE"] <- "importance"
-sort(temp$importance, decreasing = TRUE)
+Here we are going to show the top 10 most important variables in predicting sale price of a house.
+
+```{r rfVarImportance1}
+#varImpPlot(rfTrain,n.var=10)
 ```
-```{r rf3}
-pander(temp, title="Importance of each factor according to random forest")
+
+```{r rfVarImportance2}
+importance = importance(rfTrain)
+varImportance = head(data.frame(Variables = row.names(importance),
+ Importance =round(importance[, "%IncMSE"],1)),10)
+rankImportance=varImportance%>%mutate(Rank=paste('#',dense_rank(desc(Importance))))
+ggplot(rankImportance,aes(x=reorder(Variables,Importance),
+ y=Importance,fill=Importance))+ 
+ geom_bar(stat='identity') + 
+ geom_text(aes(x = Variables, y = 0.5, label = Rank),
+ hjust=0, vjust=0.55, size = 4, colour = 'white') +
+ labs(x = 'Variables') +
+ coord_flip() + 
+ theme_classic()
 ```
+
 
 From the random forest analysis, we have discovered that the top three most important factors for predicting sale price are the following:
 
 \begin{enumerate}
+\item OverallQual
+\item LotArea
 \item GrLivArea
 \item Neighbourhood
-\item OverallQual
 \end{enumerate}
 
 #### Cross Validation
+
+```{r RFCV2}
+set.seed(123) 
+  
+# computing model performance metrics 
+data.frame( R2 = R2(rfYhat, y_test), 
+            RMSE = RMSE(rfYhat, y_test), 
+            MAE = MAE(rfYhat, y_test)) 
+```
+
 
 Therefore, we will make GAM models according to these three factors. 
 
 ### 3. GAM (Yufei Lin)
 
 ```{r GAM}
-fit1 = gam(SalePrice ~ GrLivArea + Neighborhood + OverallQual, data = HousePricing)
+fit1 = gam(SalePrice ~ s(LotFrontage) + s(LotArea) + OverallQual, data = train)
 print("Deviance of Model 1")
 deviance(fit1)
-```
+pred1 = predict(fit1, newdata=x_test)
+accuracy = mean(abs(y_test - pred1)<=10000)
+print("Accuracy of Model 1")
+accuracy
+par(mfrow=c(1,2))
+plot(fit1 , se=TRUE , col="red")
 
+fit2 = gam(SalePrice ~ OverallCond + s(LotArea) + OverallQual, data = train)
+print("Deviance of Model 2")
+deviance(fit2)
+pred2 = predict(fit2, newdata=x_test)
+accuracy = mean(abs(y_test - pred2)<=10000)
+print("Accuracy of Model 2")
+accuracy
+plot(fit2 , se=TRUE , col="red")
+
+fit3 = gam(SalePrice ~ LotFrontage + LandSlope + OverallQual, data = train)
+print("Deviance of Model 3")
+deviance(fit3)
+pred3 = predict(fit3, newdata=x_test)
+accuracy = mean(abs(y_test - pred3)<=10000)
+print("Accuracy of Model 3")
+accuracy
+#plot(fit3 , se=TRUE , col="red")
+```
+```{r GAMSummary}
+anova(fit1,fit2,fit3,test="F")
+```
 From this we know that the deviance is quite large, we need a better model. 
 
 #### Cross Validation
+
+```{r GAMCV}
+set.seed(123) 
+
+# computing model performance metrics 
+print("Cross Validation of Model 1")
+data.frame( R2 = R2(pred1, y_test), 
+            RMSE = RMSE(pred1, y_test), 
+            MAE = MAE(pred1, y_test))
+
+print("Cross Validation of Model 2")
+data.frame( R2 = R2(pred2, y_test), 
+            RMSE = RMSE(pred2, y_test), 
+            MAE = MAE(pred2, y_test))
+
+print("Cross Validation of Model 3")
+data.frame( R2 = R2(pred3, y_test), 
+            RMSE = RMSE(pred3, y_test), 
+            MAE = MAE(pred3, y_test))
+```
 
 ### 4. Lasso & Ridge (Jinhong)
 
@@ -331,6 +444,24 @@ predict(LassoFit, s = bestlambda, type="coefficients")
 #### Cross Validation
 
 ### 6. Linear Regression (Yanze)
+
+```{r LRPreparModel1}
+lm_model = lm(formula = SalePrice ~.,data = train)
+
+summary(lm_model)
+```
+
+```{r LRPreparModel2}
+# Multiple R-squared: 0.9475, 
+# Adjusted R-squared: 0.9345  
+# F-statistic:  73.09  on 289 and 1170 DF, 
+# p-value: < 2.2e-16
+
+lm_pred = predict(lm_model, newdata = as.data.frame(test))
+lm_pred  = exp(lm_pred)
+lm_pred
+#result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
+```
 
 #### Cross Validation
 
