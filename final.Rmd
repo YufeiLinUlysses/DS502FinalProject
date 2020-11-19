@@ -62,10 +62,11 @@ Variable Name:
 
 ### Read in Data
 
-Drop ID!!!!
+We have chosen to eliminate the ID column from this dataset because ID has nothing to do with our prediction and would mess up our prediction. 
 
 ```{r readData}
 vault = read.csv("./SourceData/test.csv")
+vault = subset(vault, select=-Id)
 HousePricing = read.csv("./SourceData/train.csv")
 HousePricing = subset(HousePricing,select=-Id)
 ```
@@ -197,23 +198,208 @@ HousePricing$MoSold = as.factor(HousePricing$MoSold)
 HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
 ```
 
+```{r fe2, include=FALSE}
+
+combined_data = HousePricing
+
+#colnames(combined_data)
+#glue("Dimension of Combined Dataset : {dim(combined_data)}")
+
+#glimpse(combined_data)
+# check number of NAs in each column:
+cbind(colSums(is.na(combined_data)))
+
+# drop ID column from the dataset 
+combined_data$Id = NULL
+str(combined_data)
+cbind(colSums(is.na(combined_data)))
+
+
+# percentage of missing Values in dataset ####
+cbind(colSums(is.na(combined_data)),colSums(is.na(combined_data))/(nrow(combined_data)) * 100)
+
+
+# fixing Missing Values :
+# MSZoning
+# 4 missing values 
+unique(combined_data$MSZoning)
+table(combined_data$MSZoning)
+# Most of the values are populated with RL
+combined_data$MSZoning[is.na(combined_data$MSZoning)] = "RL"
+
+# LotFrontage : 486 missing values
+#glue("Mean of LotFrontage : {mean(combined_data$LotFrontage, na.rm = T)} and Median of LotFrontage : {median(combined_data$LotFrontage, na.rm = T)}")
+
+neighbor_Median  = combined_data %>%
+  select(LotFrontage, Neighborhood) %>%
+  group_by(Neighborhood) %>%
+  summarise(LotFrontage = median(LotFrontage, na.rm = T))
+
+# alternative : 
+# neighbor_Median = aggregate(LotFrontage ~ Neighborhood, data = combined_data, median)
+for (i in 1:nrow(combined_data))
+{
+  if(is.na(combined_data$LotFrontage[i])){
+    temp = combined_data$Neighborhood[i]
+    combined_data$LotFrontage[i] = neighbor_Median$LotFrontage[neighbor_Median$Neighborhood == temp]
+  }
+  
+}
+
+# Alley has 93.21% missing data
+# and as per data description, NA =  no alley access
+# Create a third alley type but before that convert it to character
+combined_data$Alley = as.character(combined_data$Alley)
+combined_data$Alley[is.na(combined_data$Alley)] = "None"
+combined_data$Alley = as.factor(combined_data$Alley)
+
+# utilites :  type of utilities available 
+combined_data$Utilities = as.factor(combined_data$Utilities)
+unique(combined_data$Utilities)
+table(combined_data$Utilities)
+
+# One NA  and All other has AllPubs 
+combined_data$Utilities[is.na(combined_data$Utilities)] = "AllPub"
+# But single value: no vaiation 
+#  Discard it 
+combined_data$Utilities = NULL
+
+unique(combined_data$Exterior1st)
+table(combined_data$Exterior1st)
+
+combined_data$SalePrice[is.na(combined_data$Exterior1st)]
+
+which.max(table(combined_data$Exterior1st))
+
+# its in testing data
+combined_data$Exterior1st[is.na(combined_data$Exterior1st)] = "VinylSd"
+unique(combined_data$Exterior2nd)
+table(combined_data$Exterior2nd)
+which.max(table(combined_data$Exterior2nd))
+
+combined_data$Exterior2nd[is.na(combined_data$Exterior2nd)] = "VinylSd"
+
+# MasVbeType
+unique(combined_data$MasVnrType)
+table(combined_data$MasVnrType)
+combined_data$MasVnrType[is.na(combined_data$MasVnrType)] = "None"
+# Mass Veneer Area : 23 NAs
+unique(combined_data$MasVnrArea)
+combined_data$MasVnrArea[is.na(combined_data$MasVnrArea)] = median(combined_data$MasVnrArea, na.rm = T)
+
+# Basement Details ####
+# Basement Criteria : None for NA
+unique(combined_data$BsmtQual)
+combined_data$BsmtQual = as.character(combined_data$BsmtQual)
+combined_data$BsmtQual[is.na(combined_data$BsmtQual)] = "None"
+
+unique(combined_data$BsmtCond)
+combined_data$BsmtCond = as.character(combined_data$BsmtCond)
+combined_data$BsmtCond[is.na(combined_data$BsmtCond)] = "None"
+
+combined_data$BsmtExposure = as.character(combined_data$BsmtExposure)
+combined_data$BsmtExposure[is.na(combined_data$BsmtExposure)] = "None"
+combined_data$BsmtFinType1 = as.character(combined_data$BsmtFinType1)
+combined_data$BsmtFinType1[is.na(combined_data$BsmtFinType1)] = "None"
+combined_data$BsmtFinType2 = as.character(combined_data$BsmtFinType2)
+combined_data$BsmtFinType2[is.na(combined_data$BsmtFinType2)] = "None"
+
+
+combined_data$BsmtFinSF1[is.na(combined_data$BsmtFinSF1)] = median(combined_data$BsmtFinSF1, na.rm = T)
+
+cbind(table(combined_data$BsmtFinSF2)) 
+# most 0s
+combined_data$BsmtFinSF2[is.na(combined_data$BsmtFinSF2)] = 0
+
+unique(combined_data$BsmtUnfSF)
+combined_data$BsmtUnfSF[is.na(combined_data$BsmtUnfSF)] = median(combined_data$BsmtUnfSF, na.rm = T)
+
+unique(combined_data$TotalBsmtSF)
+combined_data$TotalBsmtSF[is.na(combined_data$TotalBsmtSF)] = median(combined_data$TotalBsmtSF, na.rm = T)
+
+unique(combined_data$BsmtFullBath)
+table(combined_data$BsmtFullBath)
+combined_data$BsmtFullBath[is.na(combined_data$BsmtFullBath)] = 0
+
+unique(combined_data$BsmtHalfBath)
+table(combined_data$BsmtHalfBath)
+combined_data$BsmtHalfBath[is.na(combined_data$BsmtHalfBath)] = 0
+
+# Kitchen ####
+unique(combined_data$KitchenQual)
+table(combined_data$KitchenQual)
+combined_data$KitchenQual[is.na(combined_data$KitchenQual)] = "TA"
+
+## Electrical ####
+unique(combined_data$Electrical)
+table(combined_data$Electrical)
+combined_data$Electrical[is.na(combined_data$Electrical)] = "SBrkr"
+
+# functional
+unique(combined_data$Functional)
+table(combined_data$Functional)
+combined_data$Functional[is.na(combined_data$Functional)] = "Typ"
+
+unique(combined_data$FireplaceQu)
+table(combined_data$FireplaceQu)
+combined_data$FireplaceQu[is.na(combined_data$FireplaceQu)] = "None"
+
+# Garage ####
+unique(combined_data$GarageType)
+table(combined_data$GarageType)
+combined_data$GarageType[is.na(combined_data$GarageType)] = "None"
+
+combined_data$GarageYrBlt[is.na(combined_data$GarageYrBlt)] = 0
+
+table(combined_data$GarageFinish)
+combined_data$GarageFinish[is.na(combined_data$GarageFinish)] = "None"
+
+combined_data$GarageArea[is.na(combined_data$GarageArea)] = 0 
+combined_data$GarageCars[is.na(combined_data$GarageCars)] = 0
+combined_data$GarageQual[is.na(combined_data$GarageQual)] = "None"
+combined_data$GarageCond[is.na(combined_data$GarageCond)] = "None"
+
+# Misclenneous #####
+combined_data$PoolQC[is.na(combined_data$PoolQC)] = "None"
+combined_data$Fence[is.na(combined_data$Fence)] = "None"
+combined_data$MiscFeature[is.na(combined_data$MiscFeature)] = "None"
+combined_data$MiscVal
+
+
+# sales type ####
+unique(combined_data$SaleType)
+table(combined_data$SaleType)
+combined_data$SaleType[is.na(combined_data$SaleType)] = 'WD'
+
+
+# Changing characters to Factors variables
+# apply(combined_data,1, function(x){ if(class(x) == "character"){x = as.factor(x)}})
+combined_data = as.data.frame(unclass(combined_data))
+
+# some numeric data to factor
+combined_data$MSSubClass = as.factor(combined_data$MSSubClass)
+
+```
+
+
+
 ```{r prepareNewData}
-numvar = which(sapply(HousePricing, is.numeric))
-catvar = which(sapply(HousePricing, is.factor))
-numdata = HousePricing[,numvar]
+numvar = which(sapply(combined_data, is.numeric))
+catvar = which(sapply(combined_data, is.factor))
+numdata = combined_data[,numvar]
 numcor =(cor(numdata))
 corsorted = as.matrix(sort(numcor[,"SalePrice"],decreasing = TRUE))
 CorHigh <- names(which(apply(corsorted, 1, function(x) abs(x)>0.5)))
 numcor <- numcor[CorHigh, CorHigh]
 corrplot.mixed(numcor, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-temp = subset(HousePricing,select=-SalePrice)
+temp = subset(combined_data,select=-SalePrice)
 # standardize numerical data 
 numeric = select_if(temp,is.numeric)
 stnumer = scale(numeric,center = T,scale = T)
 convFact = select_if(temp,is.factor)
 # one hot
-convFact = model.matrix(~.-1,convFact) %>% as.data.frame()
-SalePrice = HousePricing$SalePrice
+convFact = model.matrix(~.-1,convFact) %>% data.frame()
+SalePrice = combined_data$SalePrice
 # put standardized numerical data and categorical data in one data?
 newdata = cbind(stnumer,convFact,SalePrice)
 
@@ -234,30 +420,51 @@ Spearate by 70% train, 30% test.
 
 Convert to CSV upload
 
+```{r prepareClassification}
+clbtnewdata=transform(btnewdata,SalePrice=ifelse(SalePrice>168000,1,0))
+```
 
-```{r separateData}
+```{r separateDataReg}
 set.seed(1)
 randS = sample(1:nrow(btnewdata), nrow(btnewdata)*0.7)
 train = btnewdata[randS,]
 test = btnewdata[-randS,]
-dim(train)
-dim(test)
-```
-```{r writeToCSV}
-#write.csv(train,"./SourceData/train_p.csv", row.names = FALSE)
-#write.csv(test,"./SourceData/test_p.csv", row.names = FALSE)
 ```
 
-```{r newCSVTestTrain}
-test = read.csv("./SourceData/test_p.csv")
+```{r separateDataClass}
+set.seed(12345)
+randS = sample(1:nrow(clbtnewdata), nrow(btnewdata)*0.7)
+trainCl = clbtnewdata[randS,]
+testCl = clbtnewdata[-randS,]
+```
+
+```{r writeToCSV}
+#write.csv(trainCl,"./SourceData/train_p_cl.csv", row.names = FALSE)
+#write.csv(testCl,"./SourceData/test_p_cl.csv", row.names = FALSE)
+```
+
+```{r newCSVTestTrainReg}
+test = read.csv("./SourceData/test_p2.csv")
 y_test = test$SalePrice
 x_test = subset (test, select = -SalePrice)
-train = read.csv("./SourceData/train_p.csv")
+train = read.csv("./SourceData/train_p2.csv")
 y_train = train$SalePrice
 x_train = subset (train, select = -SalePrice)
 y_train = as.numeric(y_train)
 y_test = as.numeric(y_test)
 summary(y_train)
+```
+
+```{r newCSVTestTrainCl}
+test_cl = read.csv("./SourceData/test_p_cl.csv")
+y_test_cl = test$SalePrice
+x_test_cl = subset (test, select = -SalePrice)
+train_cl = read.csv("./SourceData/train_p_cl.csv")
+y_train_cl = train_cl$SalePrice
+x_train_cl = subset (train, select = -SalePrice)
+y_train_cl = as.factor(y_train_cl)
+y_test_cl = as.factor(y_test_cl)
+summary(y_train_cl)
 ```
 
 ## Hierachical
@@ -269,19 +476,21 @@ Each team member bootstraps training data.
 Each model needs a cross validation algorithm
 Remember to report RMSE
 
-### 1. PCA (Iris)
+### Regression Methods
 
-```{r PCA}
+#### 1. PCR (Iris)
+
+```{r PCR}
 set.seed(2)
 # Need help with PCA analysis
 # pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
 ```
 
-#### Cross Validation
+##### Cross Validation
 
-### 2. Random Forest (Yufei Lin)
+#### 2. Random Forest (Yufei Lin)
 
-#### Prepare Model
+##### Prepare Model
 
 We have $199$ independent variables in the data set, therefore we have set mtry(Number of randomly selected variables for each split) to be the square root of that number for maximum performance of the model. 
 
@@ -289,11 +498,11 @@ We have $199$ independent variables in the data set, therefore we have set mtry(
 # Need to figure out how many independent variables then set mtry
 # set mtry to be square root of total number of independent variables
 totalIV = length(colnames(train))
-rfTrain=randomForest(SalePrice~.,data=train, mtry=sqrt(totalIV)+10,importance =TRUE)
+rfTrain=randomForest(SalePrice~.,data=train, mtry=sqrt(totalIV)+1000,importance =TRUE)
 pander(rfTrain)
 ```
 
-#### Check Accuracy
+##### Check Accuracy
 
 If we raise the allowance to $\$$10000 We could raise the prediction accuracy to almost 95% of a time.
 
@@ -302,9 +511,11 @@ rfYhat = predict(rfTrain, newdata=x_test)
 head(rfYhat)
 head(y_test)
 #table(y_test, rfYhat)
-accuracy = mean(abs(y_test - rfYhat)<=10000)
+accuracy = mean(abs(y_test - rfYhat)/y_test<=0.05)
 accuracy
 ```
+
+##### Error Metrics
 
 Then let us take a look at the MSE of this model: 
 ```{r rfMSE}
@@ -313,13 +524,11 @@ print("The test MSE is shown in the following: ")
 mean((rfYhat-test$SalePrice)^2)
 ```
 
+##### Variable Importance
+
 Here we are going to show the top 10 most important variables in predicting sale price of a house.
 
 ```{r rfVarImportance1}
-#varImpPlot(rfTrain,n.var=10)
-```
-
-```{r rfVarImportance2}
 importance = importance(rfTrain)
 varImportance = head(data.frame(Variables = row.names(importance),
  Importance =round(importance[, "%IncMSE"],1)),10)
@@ -344,9 +553,9 @@ From the random forest analysis, we have discovered that the top three most impo
 \item Neighbourhood
 \end{enumerate}
 
-#### Cross Validation
+##### Cross Validation
 
-```{r RFCV2}
+```{r RFCV}
 set.seed(123) 
   
 # computing model performance metrics 
@@ -358,43 +567,55 @@ data.frame( R2 = R2(rfYhat, y_test),
 
 Therefore, we will make GAM models according to these three factors. 
 
-### 3. GAM (Yufei Lin)
+#### 3. GAM (Yufei Lin)
 
-```{r GAM}
+1) GAM1
+
+```{r GAM1}
 fit1 = gam(SalePrice ~ s(LotFrontage) + s(LotArea) + OverallQual, data = train)
 print("Deviance of Model 1")
 deviance(fit1)
 pred1 = predict(fit1, newdata=x_test)
-accuracy = mean(abs(y_test - pred1)<=10000)
+accuracy = mean(abs(y_test - pred1)/y_test<=0.05)
 print("Accuracy of Model 1")
 accuracy
-par(mfrow=c(1,2))
 plot(fit1 , se=TRUE , col="red")
+```
 
+2) GAM1
+
+```{r GAM2}
 fit2 = gam(SalePrice ~ OverallCond + s(LotArea) + OverallQual, data = train)
 print("Deviance of Model 2")
 deviance(fit2)
 pred2 = predict(fit2, newdata=x_test)
-accuracy = mean(abs(y_test - pred2)<=10000)
+accuracy = mean(abs(y_test - pred2)/y_test<=0.05)
 print("Accuracy of Model 2")
 accuracy
 plot(fit2 , se=TRUE , col="red")
+```
 
-fit3 = gam(SalePrice ~ LotFrontage + LandSlope + OverallQual, data = train)
+3) GAM3
+
+```{r GAM3}
+fit3 = gam(SalePrice ~ LotFrontage + YearRemodAdd + OverallQual, data = train)
 print("Deviance of Model 3")
 deviance(fit3)
 pred3 = predict(fit3, newdata=x_test)
-accuracy = mean(abs(y_test - pred3)<=10000)
+accuracy = mean(abs(y_test - pred3)/y_test<=0.05)
 print("Accuracy of Model 3")
 accuracy
 #plot(fit3 , se=TRUE , col="red")
 ```
+
+GAM Summary
+
 ```{r GAMSummary}
 anova(fit1,fit2,fit3,test="F")
 ```
 From this we know that the deviance is quite large, we need a better model. 
 
-#### Cross Validation
+##### Cross Validation
 
 ```{r GAMCV}
 set.seed(123) 
@@ -416,17 +637,17 @@ data.frame( R2 = R2(pred3, y_test),
             MAE = MAE(pred3, y_test))
 ```
 
-### 4. Lasso & Ridge (Jinhong)
+#### 4. Lasso & Ridge (Jinhong)
 
 ```{r LassoRidge}
 #LASSO
 LassoAlpha=1
 LassoLambda = 10^(seq(3,-1,length=100))
 set.seed(12)
-XTrain = model.matrix(SalePrice~.,data = train1)[,-1]
-XTest = model.matrix(SalePrice~.,test1)[,-1]
-YTrain = train1$SalePrice
-YTest = test1$SalePrice
+XTrain = model.matrix(SalePrice~.,data = train)[,-1]
+XTest = model.matrix(SalePrice~.,test)[,-1]
+YTrain = train$SalePrice
+YTest = test$SalePrice
 set.seed(123)
 LassoFit = glmnet(XTrain, YTrain, alpha=LassoAlpha, lambda=LassoLambda)
 LassoFitcv = cv.glmnet(XTrain, YTrain, alpha = LassoAlpha, lambda = LassoLambda)
@@ -437,17 +658,16 @@ sqrt(mean((LassoPred -YTest)^2))
 predict(LassoFit, s = bestlambda, type="coefficients")
 ```
 
-#### Cross Validation
+##### Cross Validation
 
-### 5. Splines (Jingfeng)
+#### 5. Splines (Jingfeng)
 
-#### Cross Validation
+##### Cross Validation
 
-### 6. Linear Regression (Yanze)
+#### 6. Linear Regression (Yanze)
 
 ```{r LRPreparModel1}
 lm_model = lm(formula = SalePrice ~.,data = train)
-
 summary(lm_model)
 ```
 
@@ -458,14 +678,25 @@ summary(lm_model)
 # p-value: < 2.2e-16
 
 lm_pred = predict(lm_model, newdata = as.data.frame(test))
-lm_pred  = exp(lm_pred)
+#lm_pred  = exp(lm_pred)
 lm_pred
 #result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
 ```
 
-#### Cross Validation
+##### Cross Validation
 
-### 7. Ensemble
+#### 7. Ensemble
+
+### Classifcation Methods
+
+#### 1. Support Vector Machine
+```{r svm}
+library(e1071)
+svmfit=svm(SalePrice~., data=train_cl , kernel="linear", cost=10,
+scale=FALSE)
+svmfit
+
+```
 
 ## Evaluation of different models
 
