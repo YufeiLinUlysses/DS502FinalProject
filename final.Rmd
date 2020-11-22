@@ -1,7 +1,8 @@
 ---
-title: "Homework 1"
-author: "Yufei Lin, Jingfeng Xia"
-date: "Nov 7 2020"
+title: "House Pricing Prediction"
+subtitle: "DS502 Final Project"
+author: "Yufei Lin, Jingfeng Xia, Jinhong Yu, Shijing Yang, Yanze Wang"
+date: "Nov 29 2020"
 output:
   pdf_document: default
   word_document: default
@@ -10,6 +11,10 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+# check R version
+R.Version()$major
+
+# set up document
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
@@ -27,20 +32,13 @@ local({
     if (is.numeric(x)) sprintf('$%s$', res) else res
   })
 })
+
+# define printf function
+printf <- function(...)print(sprintf(...))
 ```
 
-```{r checkVersion}
-# check R version
-R.Version()$major
-```
 ```{r libraries, include=FALSE}
-library(pander)
-library(knitr)
-library(skimr)
-library(kableExtra)
-library(tinytex)
-library(dplyr)
-library(purrr)
+# Import model libraries
 library(pls)
 library(randomForest)
 library(gam)
@@ -54,15 +52,25 @@ library(Metrics)
 library(visreg)
 ```
 
-Variable Name: 
-1. HousePricing:1400 dataset
-2. train: training data
+# Introduction
 
-## Data Processing
+## Description of the Problem
 
-### Read in Data
+Being able to predict the price of a house tends to be an important skill for both the seller and consumers. For the seller, they could make better sales and consumers could have better understanding when they try to make a purchase. Therefore, in this project, we are planning to make prediction of house price based on the 79 different predictors provided by Kaggle dataset to determine values of residential homes in Ames, Iowa. We are planning to use PCA, Cross-validation, Linear regression, and Ridge and LASSO regression for prediction. Furthermore, we will be utilizing decision trees for more accurate prediction result as a comparison with other methods.
 
-We have chosen to eliminate the ID column from this dataset because ID has nothing to do with our prediction and would mess up our prediction. 
+## Description of the Dataset
+
+In terms of the dataset, the entire data set consists of two pieces of data organized as training data set and test data set respectively. Whereas for each of the dataset, approximately 80 columns corresponding parameters would be evaluated with the prediction of house price. Some noteworthy predictors include the location classification, utilities, environment of neighborhood, house style and condition, area, year of built, and number of functioning rooms. There are over 1400 row data points in both the training data set and the test data set. The sale prices in the train dataset are given as a parameter in the form of five or six figure full flat integers. The test data set will be applied to different regression models in order to distinguish the disparities of different model performances. 
+    
+## Approaches
+
+Given that our data is aimed at predicting Sale Price of a house, it is unreasonable to require a model to fit the exact value of the dataset but only to reach an estimation within a certain range. Therefore, we have decided to use both regression and classification approaches to look at the problem. For regression method, we are going to look at if a prediction is within the range of the actual price $\pm 5\%$, we will say it is an accurate prediction. For classification prediction, we will be tagging the data into several different groups, and would be fitting the threshold accordingly with models like SVM. 
+
+# Data Processing
+
+## Read in Data
+
+We have chosen to eliminate the Id column from this dataset because Id has nothing to do with our prediction and would mess up our prediction. And we store the "test.csv" data in a variable \textbf{vault} for future testing, and save the "train.csv"" data from Kaggle to a variable named \textbf{HousePricing} for further processing.  
 
 ```{r readData}
 vault = read.csv("./SourceData/test.csv")
@@ -71,7 +79,7 @@ HousePricing = read.csv("./SourceData/train.csv")
 HousePricing = subset(HousePricing,select=-Id)
 ```
 
-### Pairs of Categories (Iris)
+## Pairs of Categories (Iris)
 
 ```{r pairsOfCategories}
 #pander(summary(HousePricing))
@@ -79,7 +87,9 @@ HousePricing = subset(HousePricing,select=-Id)
 print("Hi")
 ```
 
-### Feature Engineering
+## Feature Engineering
+
+We choose to take the log of Sale Price, our y-value. 
 
 In this section, we convert all missing value based on the following rules:
 
@@ -91,114 +101,6 @@ In this section, we convert all missing value based on the following rules:
 Convert all train to HousePricing
 
 ```{r fe, include=FALSE}
-# remove the irrational data point
-ggplot(HousePricing,aes(x=GrLivArea,y=SalePrice))+geom_point()
-HousePricing = HousePricing[HousePricing$GrLivArea<4500,]
-
-# find which variables contain NA
-NAcol <- which(colSums(is.na(HousePricing)) > 0)
-sort(colSums(sapply(HousePricing[NAcol], is.na)), decreasing = TRUE)
-
-# remove NA 
-HousePricing$PoolQC[is.na(HousePricing$PoolQC)] = 'None'
-quailty = c('None'=0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
-HousePricing$PoolQC<-recode(HousePricing$PoolQC,'None'=0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
-
-HousePricing$MiscFeature[is.na(HousePricing$MiscFeature)] = 'None'
-HousePricing$MiscFeature = as.factor(HousePricing$MiscFeature)
-
-HousePricing$Alley[is.na(HousePricing$Alley)] = 'None'
-HousePricing$Alley=recode(HousePricing$Alley,'None' = 0,'Pave' = 1,'Grvl' = 2)
-
-HousePricing$Fence[is.na(HousePricing$Fence)] = 'None'
-HousePricing$Fence=recode(HousePricing$Fence,'None' = 0,'MnWw' = 1,'GdWo' = 2,'MnPrv' = 3,'GdPrv' = 4)
-
-HousePricing$FireplaceQu[is.na(HousePricing$FireplaceQu)] = 'None'
-HousePricing$FireplaceQu=recode(HousePricing$FireplaceQu,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-
-
-HousePricing$LotFrontage[is.na(HousePricing$LotFrontage)]
-for (i in 1:nrow(HousePricing)){
-  if (is.na(HousePricing$LotFrontage[i])){
-    HousePricing$LotFrontage[i] = as.integer(median(HousePricing$LotFrontage[HousePricing$Neighborhood==HousePricing$Neighborhood[i]],na.rm = TRUE))
-  }
-}
-
-
-HousePricing$GarageType[is.na(HousePricing$GarageType)] = 'None'
-HousePricing$GarageYrBlt[is.na(HousePricing$GarageYrBlt)] <- HousePricing$YearBuilt[is.na(HousePricing$GarageYrBlt)]
-HousePricing$GarageFinish[is.na(HousePricing$GarageFinish)] = 'None'
-HousePricing$GarageQual[is.na(HousePricing$GarageQual)] = 'None'
-HousePricing$GarageCond[is.na(HousePricing$GarageCond)] = 'None'
-
-length(which(is.na(HousePricing$BsmtQual) & is.na(HousePricing$BsmtCond) & is.na(HousePricing$BsmtExposure) & is.na(HousePricing$BsmtFinType1) & is.na(HousePricing$BsmtFinType2)))
-HousePricing[!is.na(HousePricing$BsmtFinType1) & (is.na(HousePricing$BsmtCond)|is.na(HousePricing$BsmtQual)|is.na(HousePricing$BsmtExposure)|is.na(HousePricing$BsmtFinType2)), c('BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2')]
-
-HousePricing$BsmtFinType2[333] = names(sort(table(HousePricing$BsmtFinType2),decreasing = TRUE))[1]
-HousePricing$BsmtExposure[949] = names(sort(table(HousePricing$BsmtExposure),decreasing = TRUE))[1]
-
-HousePricing$BsmtQual[is.na(HousePricing$BsmtQual)] = 'None'
-HousePricing$BsmtQual=recode(HousePricing$BsmtQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-
-HousePricing$BsmtCond[is.na(HousePricing$BsmtCond)] = 'None'
-HousePricing$BsmtCond=recode(HousePricing$BsmtCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-
-HousePricing$BsmtExposure[is.na(HousePricing$BsmtExposure)]='None'
-HousePricing$BsmtExposure=recode(HousePricing$BsmtExposure,'None' = 0,'No' = 1,'Mn' = 2,'Av' = 3,'Gd' = 4)
-
-HousePricing$BsmtFinType1[is.na(HousePricing$BsmtFinType1)] = 'None'
-HousePricing$BsmtFinType1=recode(HousePricing$BsmtFinType1,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5,'GLQ' = 6)
-
-HousePricing$BsmtFinType2[is.na(HousePricing$BsmtFinType2)] = 'None'
-HousePricing$BsmtFinType2=recode(HousePricing$BsmtFinType2,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5,'GLQ' = 6)
-
-
-HousePricing$MasVnrType[is.na(HousePricing$MasVnrType)] = 'None'
-median(HousePricing$SalePrice[HousePricing$MasVnrType=='BrkCmn'])
-median(HousePricing$SalePrice[HousePricing$MasVnrType=='BrkFace'])
-median(HousePricing$SalePrice[HousePricing$MasVnrType=='None'])
-median(HousePricing$SalePrice[HousePricing$MasVnrType=='Stone'])
-HousePricing$MasVnrType=recode(HousePricing$MasVnrType,'BrkCmn' = 0,'None' = 0,'BrkFace' = 1,'Stone' = 2)
-
-HousePricing$MasVnrArea[(is.na(HousePricing$MasVnrArea))] = 0
-HousePricing$Electrical[is.na(HousePricing$Electrical)] <- names(sort(-table(HousePricing$Electrical)))[1]
-HousePricing$Electrical=as.factor(HousePricing$Electrical)
-
-HousePricing$MSZoning = as.factor(HousePricing$MSZoning)
-HousePricing$Street=recode(HousePricing$Street,'Pave' = 0,'Grvl' = 1)
-HousePricing$LotShape=recode(HousePricing$LotShape,'IR3' = 0,'IR2' = 1,'IR1' = 2,'Reg' =2)
-HousePricing$Utilities=recode(HousePricing$Utilities,'ELO' = 0,'NoSeWa' = 1,'NoSewr' = 2,'AllPub' =2)
-HousePricing$LotConfig = as.factor(HousePricing$LotConfig)
-HousePricing$Condition1 = as.factor(HousePricing$Condition1)
-HousePricing$Condition2 = as.factor(HousePricing$Condition2)
-HousePricing$LandContour = as.factor(HousePricing$LandContour)
-HousePricing$RoofStyle = as.factor(HousePricing$RoofStyle)
-HousePricing$LandSlope=recode(HousePricing$LandSlope,'Sev' = 0,'Mod' = 1,'Gtl' = 2)
-HousePricing$BldgType = as.factor(HousePricing$BldgType)
-HousePricing$HouseStyle=as.factor(HousePricing$HouseStyle)
-HousePricing$RoofMatl=as.factor(HousePricing$RoofMatl)
-HousePricing$Exterior1st=as.factor(HousePricing$Exterior1st)
-HousePricing$Exterior2nd=as.factor(HousePricing$Exterior2nd)
-HousePricing$ExterQual=recode(HousePricing$ExterQual,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
-HousePricing$ExterCond=recode(HousePricing$ExterCond,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
-HousePricing$Foundation = as.factor(HousePricing$Foundation)
-HousePricing$Heating = as.factor(HousePricing$Heating)
-HousePricing$HeatingQC=recode(HousePricing$HeatingQC,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
-HousePricing$CentralAir=recode(HousePricing$CentralAir,'N' = 0,'Y' = 1)
-HousePricing$KitchenQual=recode(HousePricing$KitchenQua,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
-HousePricing$Functional=recode(HousePricing$Functional,'Sal' = 0,'Sev' = 1,'Maj2' = 2,'Maj1' = 3,'Mod' = 4,'Min2' = 5,'Min1' = 6,'Typ' = 7)
-HousePricing$GarageType=as.factor(HousePricing$GarageType)
-
-HousePricing$GarageFinish=recode(HousePricing$GarageFinish,'None' = 0,'Unf' = 1,'RFn' = 2,'Fin' = 3)
-HousePricing$GarageCond=recode(HousePricing$GarageCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-HousePricing$PavedDrive=recode(HousePricing$PavedDrive,'N' = 0,'P' = 1,'Y' = 2)
-HousePricing$SaleType = as.factor(HousePricing$SaleType)
-HousePricing$SaleCondition = as.factor(HousePricing$SaleCondition)
-HousePricing$MoSold = as.factor(HousePricing$MoSold)
-HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
-```
-
-```{r fe2, include=FALSE}
 
 combined_data = HousePricing
 
@@ -383,7 +285,7 @@ combined_data$MSSubClass = as.factor(combined_data$MSSubClass)
 
 
 
-```{r prepareNewData}
+```{r prepareNewData, fig.width=5,fig.height=3}
 numvar = which(sapply(combined_data, is.numeric))
 catvar = which(sapply(combined_data, is.factor))
 numdata = combined_data[,numvar]
@@ -399,13 +301,13 @@ stnumer = scale(numeric,center = T,scale = T)
 convFact = select_if(temp,is.factor)
 # one hot
 convFact = model.matrix(~.-1,convFact) %>% data.frame()
-SalePrice = combined_data$SalePrice
+SalePrice = log(combined_data$SalePrice)
 # put standardized numerical data and categorical data in one data?
 newdata = cbind(stnumer,convFact,SalePrice)
 
 ```
 
-### Boostraping
+## Boostraping
 
 ```{r bootstraping}
 set.seed(1234)
@@ -414,40 +316,38 @@ btnewdata = newdata[sample,]
 ```
 
 
-### Seperate into Test and Training Set
+## Seperate into Test and Training Set
 
 Spearate by 70% train, 30% test. 
 
-Convert to CSV upload
-
 ```{r prepareClassification}
-clbtnewdata=transform(btnewdata,SalePrice=ifelse(SalePrice>168000,1,0))
+# clbtnewdata=transform(btnewdata,SalePrice=ifelse(SalePrice>168000,1,0))
 ```
 
 ```{r separateDataReg}
-set.seed(1)
-randS = sample(1:nrow(btnewdata), nrow(btnewdata)*0.7)
-train = btnewdata[randS,]
-test = btnewdata[-randS,]
+#set.seed(1)
+#randS = sample(1:nrow(btnewdata), nrow(btnewdata)*0.7)
+#train = btnewdata[randS,]
+#test = btnewdata[-randS,]
 ```
 
 ```{r separateDataClass}
-set.seed(12345)
-randS = sample(1:nrow(clbtnewdata), nrow(btnewdata)*0.7)
-trainCl = clbtnewdata[randS,]
-testCl = clbtnewdata[-randS,]
+#set.seed(12345)
+#randS = sample(1:nrow(clbtnewdata), nrow(btnewdata)*0.7)
+#trainCl = clbtnewdata[randS,]
+#testCl = clbtnewdata[-randS,]
 ```
 
 ```{r writeToCSV}
-#write.csv(trainCl,"./SourceData/train_p_cl.csv", row.names = FALSE)
-#write.csv(testCl,"./SourceData/test_p_cl.csv", row.names = FALSE)
+#write.csv(train,"./SourceData/train_p3.csv", row.names = FALSE)
+#write.csv(test,"./SourceData/test_p3.csv", row.names = FALSE)
 ```
 
 ```{r newCSVTestTrainReg}
-test = read.csv("./SourceData/test_p2.csv")
+test = read.csv("./SourceData/test_p3.csv")
 y_test = test$SalePrice
 x_test = subset (test, select = -SalePrice)
-train = read.csv("./SourceData/train_p2.csv")
+train = read.csv("./SourceData/train_p3.csv")
 y_train = train$SalePrice
 x_train = subset (train, select = -SalePrice)
 y_train = as.numeric(y_train)
@@ -467,18 +367,20 @@ y_test_cl = as.factor(y_test_cl)
 summary(y_train_cl)
 ```
 
-## Hierachical
+# Hierachical
 
 Each team member bootstraps training data. 
 
-## Prediction Algorithms
+# Prediction Algorithms
+
+We choose to use PCR, Random Forest, GAM, Lasso and Ridge, Splines and Linear Regression to look at how each model would be suitable for our regression analysis. 
 
 Each model needs a cross validation algorithm
 Remember to report RMSE
 
-### Regression Methods
+## Regression Methods
 
-#### 1. PCR (Iris)
+### 1. PCR (Iris)
 
 ```{r PCR}
 set.seed(2)
@@ -486,49 +388,52 @@ set.seed(2)
 # pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
 ```
 
-##### Cross Validation
+#### Cross Validation
 
-#### 2. Random Forest (Yufei Lin)
+### 2. Random Forest
 
-##### Prepare Model
+#### Explanation
+
+We have chosen this model because random forest is based on a collection of decision trees that could help us get better understanding of which tree and division contribute to which section such that we could have a better picture of the overall importance of each different factor in the prediction.
+
+#### Prepare Model
 
 We have $199$ independent variables in the data set, therefore we have set mtry(Number of randomly selected variables for each split) to be the square root of that number for maximum performance of the model. 
+
+The following is the result from Random Forest algorithm: 
 
 ```{r rf-preparemodel}
 # Need to figure out how many independent variables then set mtry
 # set mtry to be square root of total number of independent variables
 totalIV = length(colnames(train))
-rfTrain=randomForest(SalePrice~.,data=train, mtry=sqrt(totalIV)+1000,importance =TRUE)
+rfTrain=randomForest(SalePrice~.,data=train, mtry=sqrt(totalIV),importance =TRUE)
 pander(rfTrain)
 ```
 
-##### Check Accuracy
+#### Check Accuracy
 
-If we raise the allowance to $\$$10000 We could raise the prediction accuracy to almost 95% of a time.
+We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the $\pm 5\%$ range. The following is the result. 
 
 ```{r rfAccuracy}
 rfYhat = predict(rfTrain, newdata=x_test)
-head(rfYhat)
-head(y_test)
 #table(y_test, rfYhat)
 accuracy = mean(abs(y_test - rfYhat)/y_test<=0.05)
-accuracy
+printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
 ```
 
-##### Error Metrics
+#### Error Metrics
 
 Then let us take a look at the MSE of this model: 
 ```{r rfMSE}
-#rfYhat = predict(rfTrain ,newdata=test)
-print("The test MSE is shown in the following: ")
-mean((rfYhat-test$SalePrice)^2)
+printf("We have the MSE of the model approximately %.5f", mean((rfYhat-test$SalePrice)^2))
+
 ```
 
-##### Variable Importance
+#### Variable Importance
 
 Here we are going to show the top 10 most important variables in predicting sale price of a house.
 
-```{r rfVarImportance1}
+```{r rfVarImportance1, fig.width=5,fig.height=3}
 importance = importance(rfTrain)
 varImportance = head(data.frame(Variables = row.names(importance),
  Importance =round(importance[, "%IncMSE"],1)),10)
@@ -547,124 +452,200 @@ ggplot(rankImportance,aes(x=reorder(Variables,Importance),
 From the random forest analysis, we have discovered that the top three most important factors for predicting sale price are the following:
 
 \begin{enumerate}
-\item OverallQual
-\item LotArea
-\item GrLivArea
-\item Neighbourhood
+\item OverallQual (Overall Quality of the building)
+\item BsmtFinSF1 (Type 1 finished square feet)
+\item LotArea (Area of Parking Lot of the Building)
 \end{enumerate}
 
-##### Cross Validation
+#### Cross Validation
+
+In the cross validation, we have chosen to look at $R^2$, RMSE and MAE. 
 
 ```{r RFCV}
 set.seed(123) 
   
 # computing model performance metrics 
-data.frame( R2 = R2(rfYhat, y_test), 
+pander(data.frame( R2 = R2(rfYhat, y_test), 
             RMSE = RMSE(rfYhat, y_test), 
-            MAE = MAE(rfYhat, y_test)) 
+            MAE = MAE(rfYhat, y_test)), title="Cross Validation for Random Forest")
 ```
 
+### 3. GAM
 
-Therefore, we will make GAM models according to these three factors. 
+#### Explanation
 
-#### 3. GAM (Yufei Lin)
+We have chosen GAM as one of our models because it produces an analysis on those factors that have less linear relationship with the result, for instance LotFrontage, YearRemodAdd, and MasVnrArea that are having relatively high importance but also high p-value that makes them not very linear related to SalePrice. 
 
 1) GAM1
 
-```{r GAM1}
-fit1 = gam(SalePrice ~ s(LotFrontage) + s(LotArea) + OverallQual, data = train)
-print("Deviance of Model 1")
-deviance(fit1)
+In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors, with YearRemodAdd having a degree of freedom 2. We obtain the following result:
+
+```{r GAM1, fig.width=5,fig.height=6}
+fit1 = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train)
+printf("Deviance of Model 1 approximately %.2f", deviance(fit1))
 pred1 = predict(fit1, newdata=x_test)
+par(mfrow=c(2,1))
 accuracy = mean(abs(y_test - pred1)/y_test<=0.05)
-print("Accuracy of Model 1")
-accuracy
+printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
 plot(fit1 , se=TRUE , col="red")
 ```
 
-2) GAM1
+2) GAM2
 
-```{r GAM2}
-fit2 = gam(SalePrice ~ OverallCond + s(LotArea) + OverallQual, data = train)
-print("Deviance of Model 2")
-deviance(fit2)
+In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors. None of them has a degree of freedom in the fit. We obtain the following result:
+
+```{r GAM2, fig.width=5,fig.height=3}
+fit2 = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train)
+printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
 pred2 = predict(fit2, newdata=x_test)
 accuracy = mean(abs(y_test - pred2)/y_test<=0.05)
-print("Accuracy of Model 2")
-accuracy
+printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
 plot(fit2 , se=TRUE , col="red")
 ```
 
 3) GAM3
 
-```{r GAM3}
-fit3 = gam(SalePrice ~ LotFrontage + YearRemodAdd + OverallQual, data = train)
-print("Deviance of Model 3")
-deviance(fit3)
+In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictorswith LotFrontage having a degree of freedom of 3. We obtain the following result:
+
+```{r GAM3, fig.width=5,fig.height=3}
+fit3 = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train)
+printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
 pred3 = predict(fit3, newdata=x_test)
 accuracy = mean(abs(y_test - pred3)/y_test<=0.05)
-print("Accuracy of Model 3")
-accuracy
-#plot(fit3 , se=TRUE , col="red")
+printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+plot(fit3 , se=TRUE , col="red")
 ```
 
 GAM Summary
 
+We then take an ANOVA test to understand which model is the best and we have the following result:
+
 ```{r GAMSummary}
 anova(fit1,fit2,fit3,test="F")
 ```
-From this we know that the deviance is quite large, we need a better model. 
+We can see that from the anova test that P-value for the second model is the smallest, therefore, it is the most preferred.  
 
-##### Cross Validation
+#### Cross Validation
+
+Then, we conduct a cross-validation on the second model only. 
 
 ```{r GAMCV}
 set.seed(123) 
 
-# computing model performance metrics 
-print("Cross Validation of Model 1")
-data.frame( R2 = R2(pred1, y_test), 
-            RMSE = RMSE(pred1, y_test), 
-            MAE = MAE(pred1, y_test))
-
-print("Cross Validation of Model 2")
-data.frame( R2 = R2(pred2, y_test), 
+pander(data.frame( R2 = R2(pred2, y_test), 
             RMSE = RMSE(pred2, y_test), 
-            MAE = MAE(pred2, y_test))
-
-print("Cross Validation of Model 3")
-data.frame( R2 = R2(pred3, y_test), 
-            RMSE = RMSE(pred3, y_test), 
-            MAE = MAE(pred3, y_test))
+            MAE = MAE(pred2, y_test)), title="Cross Validation of Model 2")
 ```
 
-#### 4. Lasso & Ridge (Jinhong)
+### 4. Ridge Regression
 
-```{r LassoRidge}
-#LASSO
-LassoAlpha=1
-LassoLambda = 10^(seq(3,-1,length=100))
-set.seed(12)
-XTrain = model.matrix(SalePrice~.,data = train)[,-1]
-XTest = model.matrix(SalePrice~.,test)[,-1]
-YTrain = train$SalePrice
-YTest = test$SalePrice
+#### Explanation
+
+Ridge regression is very similar to linear regression, ridge regression is also try to minimize the RSS, but it add a penalty term, try to prevent cause overfitting when add more predictors. 
+
+#### Prepare Model
+
+1. Bootstrap Training Data
+
+```{r ridgebs}
+set.seed(2)
+bs = sample(dim(train)[1],dim(train)[1],replace = T)
+train = train[bs,]
+
+X_train = model.matrix(SalePrice~.,data = train)[,-1]
+X_test = model.matrix(SalePrice~.,test)[,-1]
+y_train = train$SalePrice
+y_test = test$SalePrice
+```
+
+1. Initial Lambda 
+
+```{r ridgeInitLambda}
+set.seed(1234)
+grid=10^seq(10,-2, length =100)
+Ridge.Alpha=0
+Ridge.Fit = glmnet(X_train, y_train, alpha=Ridge.Alpha, lambda=grid)
+Ridge.Fitcv = cv.glmnet(X_train, y_train, alpha = Ridge.Alpha,nfolds = 10,type.measure = 'deviance')
+```
+
+1. Optimal Lambda
+
+```{r ridgeOplam}
+best.lambda1 = Ridge.Fitcv$lambda.min
+best.lambda1
+## with crossvaldiation, we get the optimal lambda is equal to 0.0341
+plot(Ridge.Fitcv)
+```
+
+#### Check Accuarcy
+
+```{r ridgeAcc}
+Ridge.Pred <- predict(Ridge.Fit, s= best.lambda1, newx = X_test)
+Ridge.Pred = exp(Ridge.Pred)
+accuary = mean(abs(exp(y_test) - (Ridge.Pred))/exp(y_test) <=0.05)
+printf("Accuracy of Ridge is approximately %.2f%%", accuracy*100)
+```
+
+#### Cross Validation
+
+```{r ridgeCV}
+sqrt(mean((Ridge.Pred -exp(y_test))^2))
+pander(data.frame(R2 = R2(Ridge.Pred,y_test),RMSE = RMSE(Ridge.Pred,y_test),MAE = MAE(Ridge.Pred,y_test)),title="Cross Validation of Ridge Regression")
+```
+
+### 5. Lasso Regression
+
+#### Explanation
+
+Compare to ridge regression, lasso and ridge regression both try to minimize the RSS and have a penalty term to prevent overfitting. But Lasso regression has an advantage that lasso will make some predictors' coefficient to be 0, which could use for model selection. 
+
+#### Prepare Model
+
+1. Initial Lambda 
+
+```{r lassoInitLambda}
+Lasso.Alpha=1
+grid=10^seq(10,-2, length =100)
 set.seed(123)
-LassoFit = glmnet(XTrain, YTrain, alpha=LassoAlpha, lambda=LassoLambda)
-LassoFitcv = cv.glmnet(XTrain, YTrain, alpha = LassoAlpha, lambda = LassoLambda)
-bestlambda = LassoFitcv$lambda.min;bestlambda
-plot(LassoFitcv)
-LassoPred <- predict(LassoFit, s= bestlambda, newx = XTest)
-sqrt(mean((LassoPred -YTest)^2))
-predict(LassoFit, s = bestlambda, type="coefficients")
+Lasso.Fit = glmnet(X_train, y_train, alpha=Lasso.Alpha, lambda=grid)
+Lasso.Fitcv = cv.glmnet(X_train, y_train, alpha = Lasso.Alpha,nfolds = 10,type.measure = 'deviance')
 ```
 
-##### Cross Validation
+1. Optimal Lambda
 
-#### 5. Splines (Jingfeng)
+```{r lassoOplam}
+best.lambda = Lasso.Fitcv$lambda.min
+best.lambda
+plot(Lasso.Fitcv)
+```
 
-##### Cross Validation
+## Coefficient From Lasso Regression
+```{r lassoImp}
+lasso.coef = predict(Lasso.Fit, s = best.lambda, type="coefficients")[1:53,]
+sort(lasso.coef[lasso.coef!=0],decreasing = TRUE)
+```
 
-#### 6. Linear Regression (Yanze)
+#### Check Accuarcy
+
+```{r lassoAcc}
+Lasso.Pred =  predict(Lasso.Fit, s= best.lambda, newx = X_test)
+Lasso.Pred = exp(Lasso.Pred)
+accuary1 = mean(abs(exp(y_test) - Lasso.Pred)/exp(y_test) <=0.05)
+printf("Accuracy of Lasso is approximately %.2f%%", accuary1*100)
+```
+
+#### Cross Validation
+
+```{r lassoCV}
+sqrt(mean((Lasso.Pred -exp(y_test))^2))
+pander(data.frame(R2 = R2(Lasso.Pred,y_test), RMSE = RMSE(Lasso.Pred,y_test),MAE = MAE(Lasso.Pred,y_test)), title="Cross Validation of Lasso Regression")
+```
+
+### 6. Splines (Jingfeng)
+
+#### Cross Validation
+
+### 7. Linear Regression (Yanze)
 
 ```{r LRPreparModel1}
 lm_model = lm(formula = SalePrice ~.,data = train)
@@ -679,44 +660,63 @@ summary(lm_model)
 
 lm_pred = predict(lm_model, newdata = as.data.frame(test))
 #lm_pred  = exp(lm_pred)
-lm_pred
 #result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
 ```
 
-##### Cross Validation
+#### Cross Validation
 
-#### 7. Ensemble
+### 8. Ensemble
 
-### Classifcation Methods
+## Classifcation Methods
 
-#### 1. Support Vector Machine
-```{r svm}
+For classification method, we have separate the values of SalesPrice based on our mean, and we choose to use SVM with different kernels to make the prediction. 
+
+### 1. Support Vector Machine
+```{r svmlinear}
 library(e1071)
-svmfit=svm(SalePrice~., data=train_cl , kernel="linear", cost=10,
-scale=FALSE)
+svmfit=svm(SalePrice~., data=train_cl , kernel="linear", cost=10, scale=FALSE)
 svmfit
-
 ```
 
-## Evaluation of different models
+```{r svmlinearCV}
+tune.out=tune(svm,SalePrice~., data=train_cl,kernel="linear",
+ranges=list(cost=c(1,5,10) ))
+summary(tune.out)
+```
+
+```{r svmpoly}
+svmfit=svm(SalePrice~., data=train_cl , kernel="polynomial", cost=10, scale=FALSE)
+svmfit
+```
+
+```{r svmpolyCV}
+tune.out=tune(svm,SalePrice~., data=train_cl,kernel="polynomial",
+ranges=list(cost=c(1,5,10) ))
+summary(tune.out)
+```
+
+```{r svmradial}
+svmfit=svm(SalePrice~., data=train_cl , kernel="radial", cost=10, scale=FALSE)
+svmfit
+```
+
+```{r svmradialCV}
+tune.out=tune(svm,SalePrice~., data=train_cl,kernel="radial",
+ranges=list(cost=c(1,5,10) ))
+summary(tune.out)
+```
+
+
+# Evaluation of different models
 
 Root MSE
 
-## Choose best fit model
+# Choose best fit model
 
-## Discussion & Future Development
+# Discussion & Future Development
 
-## Resources
+# Resources
 https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda
-
-
-
-
-
-
-
-
-
 
 
 
