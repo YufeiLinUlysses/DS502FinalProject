@@ -50,6 +50,13 @@ library(caret)
 library(mgcv)
 library(Metrics)
 library(visreg)
+library('ggthemes') 
+library('scales')
+library('mice')
+library('data.table')
+library('gridExtra') 
+library('GGally')
+library('e1071')
 ```
 
 # Introduction
@@ -79,12 +86,144 @@ HousePricing = read.csv("./SourceData/train.csv")
 HousePricing = subset(HousePricing,select=-Id)
 ```
 
-## Pairs of Categories (Iris)
+## Data Exploration
 
-```{r pairsOfCategories}
-#pander(summary(HousePricing))
-#pairs(HousePricing, main="Pairs plot for the house pricing dataset")
-print("Hi")
+```{r dimensionOfData}
+# The number of columns and rows
+paste("Original training data set has",dim(HousePricing)[1], "rows and", dim(HousePricing)[2], "columns")
+
+# The percentage of data missing in train
+paste("The percentage of data missing in the original training data set is ", round(sum(is.na(HousePricing)) / (nrow(HousePricing) *ncol(HousePricing)),4)*100,"%",sep = "")
+
+# The number of duplicated rows
+paste("The number of duplicated rows are", nrow(HousePricing) - nrow(unique(HousePricing)))
+```
+
+```{r numOfNumericAndFactors}
+print("Number of Factors:")
+sum(sapply(HousePricing[,1:80],typeof) == "character")
+print("Number of Numeric:")
+sum(sapply(HousePricing[,1:80],typeof) == "integer")
+```
+```{r summaryOfData}
+pander(summary(HousePricing[,sapply(HousePricing[,1:80],typeof) == "integer"]))
+```
+
+
+
+```{r visualization}
+# data visualization
+cat.var = names(HousePricing)[which(sapply(HousePricing, is.character))]
+num.var = names(HousePricing)[which(sapply(HousePricing, is.numeric))]
+train.num = HousePricing[num.var]
+train.cat = HousePricing[cat.var]
+
+## Bar plot/Density plot function
+
+## Bar plot function
+
+plotHist <- function(data_in, i) 
+{
+  data <- data.frame(x=data_in[[i]])
+  p <- ggplot(data=data, aes(x=factor(x))) + stat_count() + xlab(colnames(data_in)[i]) + theme_light() + 
+    theme(axis.text.x = element_text(angle = 90, hjust =1))
+  return (p)
+}
+
+## Density plot function
+
+plotDen <- function(data_in, i){
+  data <- data.frame(x=data_in[[i]], SalePrice = data_in$SalePrice)
+  p <- ggplot(data= data) + geom_line(aes(x = x), stat = 'density', size = 1,alpha = 1.0) +
+    xlab(paste0((colnames(data_in)[i]), '\n', 'Skewness: ',round(skewness(data_in[[i]], na.rm = TRUE), 2))) + theme_light() 
+  return(p)
+  
+}
+
+## Function to call both Bar plot and Density plot function
+
+doPlots <- function(data_in, fun, ii, ncol=3) 
+{
+  pp <- list()
+  for (i in ii) {
+    p <- fun(data_in=data_in, i=i)
+    pp <- c(pp, list(p))
+  }
+  do.call("grid.arrange", c(pp, ncol=ncol))
+}
+
+```
+
+```{r plotting}
+# barplots for categorical features
+doPlots(train.cat, fun = plotHist, ii = 1:4, ncol = 2)
+
+doPlots(train.cat, fun = plotHist, ii = 5:8, ncol = 2)
+
+doPlots(train.cat, fun = plotHist, ii = 9:12, ncol = 2)
+
+doPlots(train.cat, fun = plotHist, ii = 13:18, ncol = 2)
+
+doPlots(train.cat, fun = plotHist, ii = 19:22, ncol = 2)
+```
+
+```{r plot}
+
+# boxplots
+
+ggplot(HousePricing, aes(x = Neighborhood, y = SalePrice)) +
+  geom_boxplot() +
+  geom_hline(aes(yintercept=80), 
+             colour='red', linetype='dashed', lwd=2) +
+  scale_y_continuous(labels=dollar_format()) +
+  theme_few()
+
+# conclusion: boxplot between the neighboorhoods and sale price shows that BrookSide and 
+# South & West of Iowa State University have cheap houses. 
+# While Northridge and Northridge Heights are rich neighborhoods with several outliers in terms of price.
+
+# density plots for numeric variables
+doPlots(train.num, fun = plotDen, ii = 2:6, ncol = 2)
+doPlots(train.num, fun = plotDen, ii = 7:12, ncol = 2)
+doPlots(train.num, fun = plotDen, ii = 13:17, ncol = 2)
+
+# Conclusion: Density plots of the features indicates that the features are skewed. 
+# The denisty plot for YearBuilt shows that the data set contains a mix of new and old houses. 
+# It shows a downturn in the number of houses in recent years, possibily due to the housing crisis.
+
+doPlots(train.num, fun = plotHist, ii = 18:23, ncol = 2)
+
+# Conclusion: The histograms below show that majority of the houses have 2 full baths, 0 half baths, 
+# and have an average of 3 bedrooms.
+
+# Explore correlation
+
+correlation = cor(na.omit(train.num))
+row_indic = apply(correlation, 1, function(x) sum(x > 0.3 | x < -0.3) > 1)
+correlation = correlation[row_indic,row_indic]
+corrplot(correlation,method = "shade")
+
+```
+
+### target varaible vs. predictors
+
+```{r targetvspredictors}
+summary(HousePricing$SalePrice)
+quantile(HousePricing$SalePrice)
+hist(HousePricing$SalePrice,col="blue",breaks = 25,main = "Distribution of SalePrice", xlab = "Sale Price")
+```
+
+\textbf{Conclusion}
+
+It deviates from normal distribution and it is right skewed
+
+# Plotting 'GrLivArea' too see if there are any outliers
+
+```{r outlier}
+qplot(GrLivArea, SalePrice, data= HousePricing,col=GrLivArea>4000,xlab = "GrLivArea", ylab="Sale Price",main = "Living Area vs. Sale Price")
+
+summary(HousePricing$GrLivArea)
+hist(HousePricing$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main = "Frequency of Living area square feet")
 ```
 
 ## Feature Engineering
@@ -541,7 +680,7 @@ pander(data.frame( R2 = R2(pred2, y_test),
 
 #### Explanation
 
-Ridge regression is very similar to linear regression, ridge regression is also try to minimize the RSS, but it add a penalty term, try to prevent cause overfitting when add more predictors. 
+The reason we choose Ridge regression model is Ridge regression is very similar to linear regression, both try to minimize the RSS, but ridge regression has a penalty term, this could help us to prevent overfitting when add more predictors.
 
 #### Prepare Model
 
@@ -558,7 +697,7 @@ y_train = train$SalePrice
 y_test = test$SalePrice
 ```
 
-1. Initial Lambda 
+1. First, we set initial alpha to 1 to fit the ridge regression,and set the values of initial lambda ranging from 10^10 to 10^(-2), essentially covering the full range of scenarios from the null model containing only the intercept, to the least squares fit.
 
 ```{r ridgeInitLambda}
 set.seed(1234)
@@ -568,7 +707,7 @@ Ridge.Fit = glmnet(X_train, y_train, alpha=Ridge.Alpha, lambda=grid)
 Ridge.Fitcv = cv.glmnet(X_train, y_train, alpha = Ridge.Alpha,nfolds = 10,type.measure = 'deviance')
 ```
 
-1. Optimal Lambda
+1. Then we use cross validation to choose the optimal lambda for Ridge Regression, as the following:
 
 ```{r ridgeOplam}
 best.lambda1 = Ridge.Fitcv$lambda.min
@@ -579,6 +718,8 @@ plot(Ridge.Fitcv)
 
 #### Check Accuarcy
 
+We then need to check accuracy, as assumed before, we would look at whether the predicted data is within $\pm 5\%$. The following is the result.
+
 ```{r ridgeAcc}
 Ridge.Pred <- predict(Ridge.Fit, s= best.lambda1, newx = X_test)
 Ridge.Pred = exp(Ridge.Pred)
@@ -587,6 +728,8 @@ printf("Accuracy of Ridge is approximately %.2f%%", accuracy*100)
 ```
 
 #### Cross Validation
+
+Then let us take a look at the MSE of this model:
 
 ```{r ridgeCV}
 sqrt(mean((Ridge.Pred -exp(y_test))^2))
@@ -597,11 +740,11 @@ pander(data.frame(R2 = R2(Ridge.Pred,y_test),RMSE = RMSE(Ridge.Pred,y_test),MAE 
 
 #### Explanation
 
-Compare to ridge regression, lasso and ridge regression both try to minimize the RSS and have a penalty term to prevent overfitting. But Lasso regression has an advantage that lasso will make some predictors' coefficient to be 0, which could use for model selection. 
+Lasso regression is pretty similar to Ridge regression. But compare to ridge, Lasso is more interpretable. It will make some predictors' coefficient to be exactly 0, which could help us find out which predictor is what Lasso thinks is important. 
 
 #### Prepare Model
 
-1. Initial Lambda 
+1. Set the initial alpha is equal to 1 (Ridge regression is 0), and also use the same initial lambda, then try to use cross validation to choose the optimal lambda for Lasso.
 
 ```{r lassoInitLambda}
 Lasso.Alpha=1
@@ -611,7 +754,7 @@ Lasso.Fit = glmnet(X_train, y_train, alpha=Lasso.Alpha, lambda=grid)
 Lasso.Fitcv = cv.glmnet(X_train, y_train, alpha = Lasso.Alpha,nfolds = 10,type.measure = 'deviance')
 ```
 
-1. Optimal Lambda
+1. With cross validation, we find out the optimal lambda as following:
 
 ```{r lassoOplam}
 best.lambda = Lasso.Fitcv$lambda.min
@@ -619,13 +762,18 @@ best.lambda
 plot(Lasso.Fitcv)
 ```
 
-## Coefficient From Lasso Regression
+#### Coefficient From Lasso Regression
+
+Here we are going to show the predictors lasso choosed.
+
 ```{r lassoImp}
 lasso.coef = predict(Lasso.Fit, s = best.lambda, type="coefficients")[1:53,]
 sort(lasso.coef[lasso.coef!=0],decreasing = TRUE)
 ```
 
 #### Check Accuarcy
+
+We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the $\pm 5\%$ range. The following is the result.
 
 ```{r lassoAcc}
 Lasso.Pred =  predict(Lasso.Fit, s= best.lambda, newx = X_test)
@@ -635,6 +783,8 @@ printf("Accuracy of Lasso is approximately %.2f%%", accuary1*100)
 ```
 
 #### Cross Validation
+
+Then let us take a look at the MSE of this model:
 
 ```{r lassoCV}
 sqrt(mean((Lasso.Pred -exp(y_test))^2))
@@ -716,7 +866,6 @@ Root MSE
 # Discussion & Future Development
 
 # Resources
-https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda
 
 
 

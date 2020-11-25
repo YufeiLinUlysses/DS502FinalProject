@@ -11,30 +11,30 @@ library('GGally')
 library('e1071')
 
 
-data.train = read.csv("./data/train.csv")
-head(data.train)
-dim(data.train)
+HousePricing = read.csv("./data/train.csv")
+head(HousePricing)
+dim(HousePricing)
 
-sum(sapply(data.train[,1:81],typeof) == "character")
-sum(sapply(data.train[,1:81],typeof) == "integer")
+sum(sapply(HousePricing[,1:81],typeof) == "character")
+sum(sapply(HousePricing[,1:81],typeof) == "integer")
 
-summary(train[,sapply(data.train[,1:81],typeof) == "integer"])
+summary(train[,sapply(HousePricing[,1:81],typeof) == "integer"])
 
 # The number of columns and rows
-paste("Original training data set has",dim(data.train)[1], "rows and", dim(data.train)[2], "columns")
+paste("Original training data set has",dim(HousePricing)[1], "rows and", dim(HousePricing)[2], "columns")
 
 # The percentage of data missing in train
-paste("The percentage of data missing in the original training data set is ", round(sum(is.na(data.train)) / (nrow(data.train) *ncol(data.train)),4)*100,"%",sep = "")
+paste("The percentage of data missing in the original training data set is ", round(sum(is.na(HousePricing)) / (nrow(HousePricing) *ncol(HousePricing)),4)*100,"%",sep = "")
 
 # The number of duplicated rows
-paste("The number of duplicated rows are", nrow(data.train) - nrow(unique(data.train)))
+paste("The number of duplicated rows are", nrow(HousePricing) - nrow(unique(HousePricing)))
 
 # data visualization
-names(data.train)
-cat.var = names(data.train)[which(sapply(data.train, is.character))]
-num.var = names(data.train)[which(sapply(data.train, is.numeric))]
-train.num = data.train[num.var]
-train.cat = data.train[cat.var]
+names(HousePricing)
+cat.var = names(HousePricing)[which(sapply(HousePricing, is.character))]
+num.var = names(HousePricing)[which(sapply(HousePricing, is.numeric))]
+train.num = HousePricing[num.var]
+train.cat = HousePricing[cat.var]
 
 ## Bar plot/Density plot function
 
@@ -94,7 +94,7 @@ dev.off()
 
 # boxplots
 
-ggplot(data.train, aes(x = Neighborhood, y = SalePrice)) +
+ggplot(HousePricing, aes(x = Neighborhood, y = SalePrice)) +
   geom_boxplot() +
   geom_hline(aes(yintercept=80), 
              colour='red', linetype='dashed', lwd=2) +
@@ -141,20 +141,20 @@ dev.off()
 
 # target varaible vs. predictors
 
-summary(data.train$SalePrice)
-quantile(data.train$SalePrice)
+summary(HousePricing$SalePrice)
+quantile(HousePricing$SalePrice)
 png("./salesPHist.png")
-hist(data.train$SalePrice,col="blue",breaks = 25,main = "Distribution of SalePrice", xlab = "Sale Price")
+hist(HousePricing$SalePrice,col="blue",breaks = 25,main = "Distribution of SalePrice", xlab = "Sale Price")
 dev.off()
 
 # Conclustion: It deviates from normal distribution and it is right skewed
 
 # Plotting 'GrLivArea' too see if there are any outliers
 png("./scatterPlot.png")
-qplot(GrLivArea, SalePrice, data= data.train,col=GrLivArea>4000,xlab = "GrLivArea", ylab="Sale Price",main = "Living Area vs. Sale Price")
+qplot(GrLivArea, SalePrice, data= HousePricing,col=GrLivArea>4000,xlab = "GrLivArea", ylab="Sale Price",main = "Living Area vs. Sale Price")
 dev.off()
 
-summary(data.train$GrLivArea)
+summary(HousePricing$GrLivArea)
 png("./GrLiveAreaHist.png")
-hist(data.train$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main = "Frequency of Living area square feet")
+hist(HousePricing$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main = "Frequency of Living area square feet")
 dev.off()
