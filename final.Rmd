@@ -240,9 +240,14 @@ Convert all train to HousePricing
 ggplot(HousePricing,aes(x=GrLivArea,y=SalePrice))+geom_point()
 ```
 ```{r featuerEngineering, include=FALSE}
+# remove ID column
+HousePricing$Id = NULL
 HousePricing = HousePricing[HousePricing$GrLivArea<4500,]
 
-cbind(colnames(HousePricing), class(colnames(HousePricing)))
+# for using later
+numericVars <- which(sapply(HousePricing, is.numeric))
+numericVarNames <- names(numericVars) 
+
 # find the columns contains NA and the number of NA values in each columns
 NAcol <- which(colSums(is.na(HousePricing)) > 0)
 sort(colSums(sapply(HousePricing[NAcol], is.na)), decreasing = TRUE)
@@ -350,53 +355,94 @@ HousePricing$SaleType = as.factor(HousePricing$SaleType)
 HousePricing$SaleCondition = as.factor(HousePricing$SaleCondition)
 HousePricing$MoSold = NULL
 HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
+HousePricing$MSSubClass=recode(HousePricing$MSSubClass,'20' = '1-STORY 1946+',
+                               '30' = '1-STORY 1945-','40' = '1-STORY Unf Attic',
+                               '45' = "1/2 STORY Unf Attic",'50' = '1/2 STORY Fin',
+                               '60' = '2-STORY+','70' = '2-STORY 1945-','80' = 'SPLIT OR MULTI-LEVEL',
+                               '85' = 'SPLIT FOYER','90' = 'DUPLEX', '120' = '1-STORY PUD 1946+',
+                               '150' = '1/2 STORY PUD','160' = '2-STORY PUD 1946+',
+                               '180' = 'PUD - MULTILEVEL',' 190' = '2 FAMILY CONVERSION')
+
+
+
+
 ```
 
 Correlation between the numerical variables
 
 ```{r corNum}
+# draw a plot of correlation between numerical variables in original data
 #which(sapply(HousePricing, is.numeric))
 numericVars = which(sapply(HousePricing, is.numeric))#numericVars
 factorVars = which(sapply(HousePricing, is.factor))
-all_numVar = HousePricing[,numericVars]#all_numVar
-cor_numVar =(cor(all_numVar))
+numVar = HousePricing[,numericVars]
+cor_numVar =(cor(numVar))
 cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
 #cor_sorted
 CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
 cor_numVar <- cor_numVar[CorHigh, CorHigh]
 corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+
+# draw a importance plot of all predictors in the original data
+set.seed(2018)
+quick_RF <- randomForest(x=HousePricing[,-78], y=HousePricing$SalePrice, ntree=100,importance=TRUE)
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+ggplot(imp_DF[1:15,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+
 ```
 ```{r ffe}
 ########################### further feature engineer ###################
 # whether remod 
 HousePricing$Remod = ifelse(HousePricing$YearBuilt == HousePricing$YearRemodAdd,0,1)
 # the age of house 
-HousePricing$age = as.numeric(HousePricing$YrSold) - HousePricing$YearRemodAdd 
+HousePricing$Age = as.numeric(HousePricing$YrSold) - HousePricing$YearRemodAdd 
 # whether is new
 HousePricing$isnew = ifelse(HousePricing$YrSold == HousePricing$YearBuilt,1,0)
 # total area.
-HousePricing$Totalsf = HousePricing$GrLivArea+HousePricing$TotalBsmtSF
-# sum up the bathroom.
+HousePricing$TotalSqFeet = HousePricing$GrLivArea+HousePricing$TotalBsmtSF
+# count the totol number of bathroom in the hourse
 HousePricing$TotBathrooms <- HousePricing$FullBath + (HousePricing$HalfBath*0.5) + HousePricing$BsmtFullBath + (HousePricing$BsmtHalfBath*0.5)
-numericVars = which(sapply(HousePricing, is.numeric))
-all_numVar = HousePricing[,numericVars]#all_numVar
 
+HousePricing$TotalPorchSF <- HousePricing$OpenPorchSF + HousePricing$EnclosedPorch + HousePricing$X3SsnPorch + HousePricing$ScreenPorch
 
-SalePrice = HousePricing[,"SalePrice"]
-all_numVar = subset(all_numVar, select = -c(GrLivArea,BsmtHalfBath,BsmtFullBath,HalfBath,FullBath,SalePrice))
-factor =select_if(HousePricing,is.factor)
+# draw a correlation plot after combine some variable
+numericVars = which(sapply(HousePricing, is.numeric))#numericVars
+factorVars = which(sapply(HousePricing, is.factor))
+numVar = HousePricing[,numericVars]
+cor_numVar =(cor(numVar))
+cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+#cor_sorted
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+
+# choose some true numerical variable to normalize(not include the encoded part)
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('MSSubClass', 'MoSold', 'YrSold', 'SalePrice', 'OverallQual', 'OverallCond'))]
+numericVarNames <- append(numericVarNames, c('Age', 'TotalPorchSF', 'TotBathrooms', 'TotalSqFeet'))
+
+# delete some highly correlated variables
+HousePricing = subset(HousePricing, select = -c(GrLivArea,ExterQual,GarageArea,X1stFlrSF,
+                                           TotRmsAbvGrd,TotalBsmtSF,GarageYrBlt,FullBath,
+                                           HalfBath,YearRemodAdd,BsmtHalfBath,BsmtFullBath))
+DFnumeric <- HousePricing[, names(HousePricing) %in% numericVarNames]
+DFfactors <- HousePricing[, !(names(HousePricing) %in% numericVarNames)]
+DFfactors <- DFfactors[, names(DFfactors) != 'SalePrice']
 
 ########################## Normalizing the numerical data #########################
-snumeric = scale(all_numVar,center = T,scale = T)
+predf = scale(DFnumeric,center = T,scale = T)
+
 ```
 
 As discussed before, we have decided to use logrithmic with base $e$ and square root to process the data. We have also saved $15\%$ of our data into a variable named vault for the final test of each model. 
 
 ```{r getFinalData}
 ############ one-hot encoding and combine with scaled numerical data #######################################
-factor = model.matrix(~.-1,factor) %>% as.data.frame()
-newdata = cbind(snumeric,factor)
-newdata$SalePrice = SalePrice
+dfdummies = model.matrix(~.-1,DFfactors) %>% as.data.frame()
+newdata = cbind(predf,dfdummies)
+newdata$SalePrice = HousePricing$SalePrice
+
 set.seed(1)
 vault = sample(1:nrow(newdata), nrow(newdata)*0.15)
 dVault = newdata[vault,]
@@ -584,13 +630,13 @@ Remember to report RMSE
 We have chosen this model to understand how each numeric variable is linear related to our House Price prediction.
 
 ```{r lrlog}
-lm_model = lm(formula = SalePrice ~.,data = train_log)
-summary(lm_model)
+lm_log_model = lm(formula = SalePrice ~.,data = train_log)
+summary(lm_log_model)
 ```
 
 ```{r lrsqrt}
-lm_model = lm(formula = SalePrice ~.,data = train_log)
-summary(lm_model)
+lm_log_model = lm(formula = SalePrice ~.,data = train_log)
+summary(lm_log_model)
 ```
 
 #### Check Accuracy
@@ -601,8 +647,9 @@ summary(lm_model)
 # F-statistic:  73.09  on 289 and 1170 DF, 
 # p-value: < 2.2e-16
 lm_log_pred = predict(lm_model, newdata = test_log)
-accuracy = mean(abs(y_test_log - '^'(10,lm_log_pred))/y_test_log<=0.05)
-printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
+lm_log_pred = exp(lm_log_pred)
+lm_log_accuracy = mean(abs(exp(y_test_log) - lm_log_pred /exp(y_test_log))<=0.05)
+printf("We have the accuracy of the model approximately %.2f%%", lm_log_accuracy*100)
 #lm_pred  = exp(lm_pred)
 #result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
 ```
@@ -663,6 +710,16 @@ ggplot(rankImportance,aes(x=reorder(Variables,Importance),
  labs(x = 'Variables') +
  coord_flip() + 
  theme_classic()
+
+## another plot
+importance = importance(rfTrain)
+importancedf =  data.frame(Variables = row.names(importance), MSE = importance[,1])
+importancedf <- importancedf[order(importancedf$MSE, decreasing = TRUE),]
+ggplot(importancedf[1:10,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+
+
+
+
 ```
 
 
