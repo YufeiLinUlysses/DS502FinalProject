@@ -18,6 +18,7 @@ R.Version()$major
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+knitr::opts_chunk$set(fig.width=5,fig.height=3)
 library(pander)
 library(knitr)
 library(skimr)
@@ -63,25 +64,23 @@ library('e1071')
 
 ## Description of the Problem
 
-Being able to predict the price of a house tends to be an important skill for both the seller and consumers. For the seller, they could make better sales and consumers could have better understanding when they try to make a purchase. Therefore, in this project, we are planning to make prediction of house price based on the 79 different predictors provided by Kaggle dataset to determine values of residential homes in Ames, Iowa. We are planning to use PCA, Cross-validation, Linear regression, and Ridge and LASSO regression for prediction. Furthermore, we will be utilizing decision trees for more accurate prediction result as a comparison with other methods.
+Being able to predict the price of a house tends to be an important skill for both the seller and consumers. For the seller, they could make better sales and consumers could have better understanding when they try to make a purchase. Therefore, in this project, we are planning to make prediction of house price based on the 79 different predictors provided by Kaggle dataset to determine values of residential homes in Ames, Iowa. We have noticed Sale Price has a typical right-skewed distribution, and decided to process it using two ways, logrithmic with base $e$ and square root for a distribution that is much closer to the shape of a Gaussian distribution for better performance in models like linear regression. In this analysis, we will perform random forest on original y-value for importance of variables and all the rest of models on both absolute and processed y-values to see which way would each model do better and provide an ensemble of models at the end of our study. 
 
 ## Description of the Dataset
 
-In terms of the dataset, the entire data set consists of two pieces of data organized as training data set and test data set respectively. Whereas for each of the dataset, approximately 80 columns corresponding parameters would be evaluated with the prediction of house price. Some noteworthy predictors include the location classification, utilities, environment of neighborhood, house style and condition, area, year of built, and number of functioning rooms. There are over 1400 row data points in both the training data set and the test data set. The sale prices in the train dataset are given as a parameter in the form of five or six figure full flat integers. The test data set will be applied to different regression models in order to distinguish the disparities of different model performances. 
+In terms of the dataset, the entire data set consists of two pieces of data organized as training data set and test data set respectively. Whereas for each of the dataset, approximately 80 columns corresponding parameters would be evaluated with the prediction of house price. Some noteworthy predictors include the location classification, utilities, environment of neighborhood, house style and condition, area, year of built, and number of functioning rooms. There are over 1400 row of data points in both the training data set and the test data set. The sale prices in the train dataset are given as a parameter in the form of five or six figure full flat integers. The test data set will be applied to different regression models in order to distinguish the disparities of different model performances. 
     
 ## Approaches
 
-Given that our data is aimed at predicting Sale Price of a house, it is unreasonable to require a model to fit the exact value of the dataset but only to reach an estimation within a certain range. Therefore, we have decided to use both regression and classification approaches to look at the problem. For regression method, we are going to look at if a prediction is within the range of the actual price $\pm 5\%$, we will say it is an accurate prediction. For classification prediction, we will be tagging the data into several different groups, and would be fitting the threshold accordingly with models like SVM. 
+Given that our data is aimed at predicting Sale Price of a house, it is unreasonable to require a model to fit the exact value of the dataset but only to reach an estimation within a certain range. Therefore, we have decided to use both regression and classification approaches to look at the problem on both the original and processed value. For regression method, we are going to look at if a prediction is within the range of the actual price $\pm 5\%$, we will say it is an accurate prediction. For classification prediction, we will be tagging the data into several different groups, and would be fitting the threshold accordingly with models like SVM and K-Means clustering. 
 
 # Data Processing
 
 ## Read in Data
 
-We have chosen to eliminate the Id column from this dataset because Id has nothing to do with our prediction and would mess up our prediction. And we store the "test.csv" data in a variable \textbf{vault} for future testing, and save the "train.csv"" data from Kaggle to a variable named \textbf{HousePricing} for further processing.  
+We have chosen to eliminate the Id column from this dataset because Id has nothing to do with our prediction and would mess up our prediction. We save data in "train.csv"" from Kaggle into a variable named \textbf{HousePricing} for further processing and we will separate it into training and testing set. For each model Bootstrapping will be performed before each model's training process.   
 
 ```{r readData}
-vault = read.csv("./SourceData/test.csv")
-vault = subset(vault, select=-Id)
 HousePricing = read.csv("./SourceData/train.csv")
 HousePricing = subset(HousePricing,select=-Id)
 ```
@@ -217,7 +216,7 @@ hist(HousePricing$SalePrice,col="blue",breaks = 25,main = "Distribution of SaleP
 
 It deviates from normal distribution and it is right skewed
 
-# Plotting 'GrLivArea' too see if there are any outliers
+### Plotting 'GrLivArea' too see if there are any outliers
 
 ```{r outlier}
 qplot(GrLivArea, SalePrice, data= HousePricing,col=GrLivArea>4000,xlab = "GrLivArea", ylab="Sale Price",main = "Living Area vs. Sale Price")
@@ -228,8 +227,6 @@ hist(HousePricing$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main
 
 ## Feature Engineering
 
-We choose to take the log of Sale Price, our y-value. 
-
 In this section, we convert all missing value based on the following rules:
 
 \begin{enumerate}
@@ -239,219 +236,238 @@ In this section, we convert all missing value based on the following rules:
 
 Convert all train to HousePricing
 
-```{r fe, include=FALSE}
+```{r simplePlot}
+ggplot(HousePricing,aes(x=GrLivArea,y=SalePrice))+geom_point()
+```
+```{r featuerEngineering, include=FALSE}
+HousePricing = HousePricing[HousePricing$GrLivArea<4500,]
 
-combined_data = HousePricing
+cbind(colnames(HousePricing), class(colnames(HousePricing)))
+# find the columns contains NA and the number of NA values in each columns
+NAcol <- which(colSums(is.na(HousePricing)) > 0)
+sort(colSums(sapply(HousePricing[NAcol], is.na)), decreasing = TRUE)
 
-#colnames(combined_data)
-#glue("Dimension of Combined Dataset : {dim(combined_data)}")
-
-#glimpse(combined_data)
-# check number of NAs in each column:
-cbind(colSums(is.na(combined_data)))
-
-# drop ID column from the dataset 
-combined_data$Id = NULL
-str(combined_data)
-cbind(colSums(is.na(combined_data)))
-
-
-# percentage of missing Values in dataset ####
-cbind(colSums(is.na(combined_data)),colSums(is.na(combined_data))/(nrow(combined_data)) * 100)
-
-
-# fixing Missing Values :
-# MSZoning
-# 4 missing values 
-unique(combined_data$MSZoning)
-table(combined_data$MSZoning)
-# Most of the values are populated with RL
-combined_data$MSZoning[is.na(combined_data$MSZoning)] = "RL"
-
-# LotFrontage : 486 missing values
-#glue("Mean of LotFrontage : {mean(combined_data$LotFrontage, na.rm = T)} and Median of LotFrontage : {median(combined_data$LotFrontage, na.rm = T)}")
-
-neighbor_Median  = combined_data %>%
+# LotFrontage
+# compute the median of neighbor, na.rm means compute medians without NA
+neighbor_Median  = HousePricing %>%
   select(LotFrontage, Neighborhood) %>%
   group_by(Neighborhood) %>%
   summarise(LotFrontage = median(LotFrontage, na.rm = T))
 
-# alternative : 
-# neighbor_Median = aggregate(LotFrontage ~ Neighborhood, data = combined_data, median)
-for (i in 1:nrow(combined_data))
+# replace the LotFrontage NA with its neighbor's Lotfrontage's median.
+for (i in 1:nrow(HousePricing))
 {
-  if(is.na(combined_data$LotFrontage[i])){
-    temp = combined_data$Neighborhood[i]
-    combined_data$LotFrontage[i] = neighbor_Median$LotFrontage[neighbor_Median$Neighborhood == temp]
+  if(is.na(HousePricing$LotFrontage[i])){
+    temp = HousePricing$Neighborhood[i]
+    HousePricing$LotFrontage[i] = neighbor_Median$LotFrontage[neighbor_Median$Neighborhood == temp]
   }
-  
 }
 
-# Alley has 93.21% missing data
-# and as per data description, NA =  no alley access
-# Create a third alley type but before that convert it to character
-combined_data$Alley = as.character(combined_data$Alley)
-combined_data$Alley[is.na(combined_data$Alley)] = "None"
-combined_data$Alley = as.factor(combined_data$Alley)
+# Alley, NA means no alley.
+HousePricing$Alley[is.na(HousePricing$Alley)] = 'None'
+HousePricing$Alley = as.factor(HousePricing$Alley)
 
-# utilites :  type of utilities available 
-combined_data$Utilities = as.factor(combined_data$Utilities)
-unique(combined_data$Utilities)
-table(combined_data$Utilities)
+HousePricing$Utilities = NULL
+table(HousePricing$PoolQC)
+HousePricing$PoolQC[is.na(HousePricing$PoolQC)] = "None"
+HousePricing$PoolQC=recode(HousePricing$PoolQC,'None' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+# Fence
+HousePricing$Fence[is.na(HousePricing$Fence)] = "None"
+HousePricing$Fence = as.factor(HousePricing$Fence)
+HousePricing$MiscFeature[is.na(HousePricing$MiscFeature)] = "None"
+HousePricing$MiscFeature = as.factor(HousePricing$MiscFeature)
 
-# One NA  and All other has AllPubs 
-combined_data$Utilities[is.na(combined_data$Utilities)] = "AllPub"
-# But single value: no vaiation 
-#  Discard it 
-combined_data$Utilities = NULL
+# garage
+HousePricing$GarageYrBlt[is.na(HousePricing$GarageYrBlt)] <- HousePricing$YearBuilt[is.na(HousePricing$GarageYrBlt)]
+HousePricing$GarageType[is.na(HousePricing$GarageType)] = "None"
+HousePricing$GarageType = as.factor(HousePricing$GarageType)
+HousePricing$GarageFinish[is.na(HousePricing$GarageFinish)] = "None"
+HousePricing$GarageFinish=recode(HousePricing$GarageFinish,'None' = 0,'Unf' = 1,'RFn' = 2,'Fin' = 3)
+HousePricing$GarageQual[is.na(HousePricing$GarageQual)] = "None"
+HousePricing$GarageQual=recode(HousePricing$GarageQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$GarageCond[is.na(HousePricing$GarageCond)] = "None"
+HousePricing$GarageCond=recode(HousePricing$GarageCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$FireplaceQu[is.na(HousePricing$FireplaceQu)] = "None"
+HousePricing$FireplaceQu=recode(HousePricing$FireplaceQu,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
 
-unique(combined_data$Exterior1st)
-table(combined_data$Exterior1st)
+#electric
+HousePricing$Electrical[is.na(HousePricing$Electrical)] = "SBrkr"
+HousePricing$Electrical = as.factor(HousePricing$Electrical)
 
-combined_data$SalePrice[is.na(combined_data$Exterior1st)]
+# basement 
+length(which(is.na(HousePricing$BsmtQual) & is.na(HousePricing$BsmtCond) & is.na(HousePricing$BsmtExposure) & is.na(HousePricing$BsmtFinType1) & is.na(HousePricing$BsmtFinType2)))
+HousePricing[!is.na(HousePricing$BsmtCond) & (is.na(HousePricing$BsmtFinType1)|is.na(HousePricing$BsmtQual)|is.na(HousePricing$BsmtExposure)|is.na(HousePricing$BsmtFinType2)), c('BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2')]
+HousePricing$BsmtFinType2[333] = names(sort(table(HousePricing$BsmtFinType2),decreasing = TRUE))[1]
+HousePricing$BsmtExposure[949] = names(sort(table(HousePricing$BsmtExposure),decreasing = TRUE))[1]
+HousePricing$BsmtExposure[is.na(HousePricing$BsmtExposure)] = 'None'
+HousePricing$BsmtExposure=recode(HousePricing$BsmtExposure,'None' = 0,'No' = 1,'Mn' = 2,'Av' = 3,'Gd' = 4)
+HousePricing$BsmtQual[is.na(HousePricing$BsmtQual)] = 'None'
+HousePricing$BsmtQual=recode(HousePricing$BsmtQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$BsmtCond[is.na(HousePricing$BsmtCond)] = 'None'
+HousePricing$BsmtCond=recode(HousePricing$BsmtCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$BsmtFinType1[is.na(HousePricing$BsmtFinType1)] = 'None'
+HousePricing$BsmtFinType1=recode(HousePricing$BsmtFinType1,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5, 'GLQ' = 6)
+HousePricing$BsmtFinType2[is.na(HousePricing$BsmtFinType2)] = 'None'
+HousePricing$BsmtFinType2=recode(HousePricing$BsmtFinType2,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5, 'GLQ' = 6)
 
-which.max(table(combined_data$Exterior1st))
+# Mas
+HousePricing$MasVnrType[is.na(HousePricing$MasVnrType)] = 'None'
+HousePricing$MasVnrType = as.factor(HousePricing$MasVnrType)
+HousePricing$MasVnrArea[(is.na(HousePricing$MasVnrArea))] = 0
 
-# its in testing data
-combined_data$Exterior1st[is.na(combined_data$Exterior1st)] = "VinylSd"
-unique(combined_data$Exterior2nd)
-table(combined_data$Exterior2nd)
-which.max(table(combined_data$Exterior2nd))
+HousePricing$MSZoning = as.factor(HousePricing$MSZoning)
+HousePricing$Street = as.factor(HousePricing$Street)
+HousePricing$LotShape=recode(HousePricing$LotShape,'IR3' = 0,'IR2' = 1,'IR1' = 2,'Reg' =2)
+HousePricing$LotConfig = as.factor(HousePricing$LotConfig)
 
-combined_data$Exterior2nd[is.na(combined_data$Exterior2nd)] = "VinylSd"
+HousePricing$Condition1 = as.factor(HousePricing$Condition1)
+HousePricing$Condition2 = as.factor(HousePricing$Condition2)
+HousePricing$LandContour = as.factor(HousePricing$LandContour)
+HousePricing$RoofStyle = as.factor(HousePricing$RoofStyle)
+HousePricing$LandSlope=recode(HousePricing$LandSlope,'Sev' = 0,'Mod' = 1,'Gtl' = 2)
 
-# MasVbeType
-unique(combined_data$MasVnrType)
-table(combined_data$MasVnrType)
-combined_data$MasVnrType[is.na(combined_data$MasVnrType)] = "None"
-# Mass Veneer Area : 23 NAs
-unique(combined_data$MasVnrArea)
-combined_data$MasVnrArea[is.na(combined_data$MasVnrArea)] = median(combined_data$MasVnrArea, na.rm = T)
-
-# Basement Details ####
-# Basement Criteria : None for NA
-unique(combined_data$BsmtQual)
-combined_data$BsmtQual = as.character(combined_data$BsmtQual)
-combined_data$BsmtQual[is.na(combined_data$BsmtQual)] = "None"
-
-unique(combined_data$BsmtCond)
-combined_data$BsmtCond = as.character(combined_data$BsmtCond)
-combined_data$BsmtCond[is.na(combined_data$BsmtCond)] = "None"
-
-combined_data$BsmtExposure = as.character(combined_data$BsmtExposure)
-combined_data$BsmtExposure[is.na(combined_data$BsmtExposure)] = "None"
-combined_data$BsmtFinType1 = as.character(combined_data$BsmtFinType1)
-combined_data$BsmtFinType1[is.na(combined_data$BsmtFinType1)] = "None"
-combined_data$BsmtFinType2 = as.character(combined_data$BsmtFinType2)
-combined_data$BsmtFinType2[is.na(combined_data$BsmtFinType2)] = "None"
-
-
-combined_data$BsmtFinSF1[is.na(combined_data$BsmtFinSF1)] = median(combined_data$BsmtFinSF1, na.rm = T)
-
-cbind(table(combined_data$BsmtFinSF2)) 
-# most 0s
-combined_data$BsmtFinSF2[is.na(combined_data$BsmtFinSF2)] = 0
-
-unique(combined_data$BsmtUnfSF)
-combined_data$BsmtUnfSF[is.na(combined_data$BsmtUnfSF)] = median(combined_data$BsmtUnfSF, na.rm = T)
-
-unique(combined_data$TotalBsmtSF)
-combined_data$TotalBsmtSF[is.na(combined_data$TotalBsmtSF)] = median(combined_data$TotalBsmtSF, na.rm = T)
-
-unique(combined_data$BsmtFullBath)
-table(combined_data$BsmtFullBath)
-combined_data$BsmtFullBath[is.na(combined_data$BsmtFullBath)] = 0
-
-unique(combined_data$BsmtHalfBath)
-table(combined_data$BsmtHalfBath)
-combined_data$BsmtHalfBath[is.na(combined_data$BsmtHalfBath)] = 0
-
-# Kitchen ####
-unique(combined_data$KitchenQual)
-table(combined_data$KitchenQual)
-combined_data$KitchenQual[is.na(combined_data$KitchenQual)] = "TA"
-
-## Electrical ####
-unique(combined_data$Electrical)
-table(combined_data$Electrical)
-combined_data$Electrical[is.na(combined_data$Electrical)] = "SBrkr"
-
-# functional
-unique(combined_data$Functional)
-table(combined_data$Functional)
-combined_data$Functional[is.na(combined_data$Functional)] = "Typ"
-
-unique(combined_data$FireplaceQu)
-table(combined_data$FireplaceQu)
-combined_data$FireplaceQu[is.na(combined_data$FireplaceQu)] = "None"
-
-# Garage ####
-unique(combined_data$GarageType)
-table(combined_data$GarageType)
-combined_data$GarageType[is.na(combined_data$GarageType)] = "None"
-
-combined_data$GarageYrBlt[is.na(combined_data$GarageYrBlt)] = 0
-
-table(combined_data$GarageFinish)
-combined_data$GarageFinish[is.na(combined_data$GarageFinish)] = "None"
-
-combined_data$GarageArea[is.na(combined_data$GarageArea)] = 0 
-combined_data$GarageCars[is.na(combined_data$GarageCars)] = 0
-combined_data$GarageQual[is.na(combined_data$GarageQual)] = "None"
-combined_data$GarageCond[is.na(combined_data$GarageCond)] = "None"
-
-# Misclenneous #####
-combined_data$PoolQC[is.na(combined_data$PoolQC)] = "None"
-combined_data$Fence[is.na(combined_data$Fence)] = "None"
-combined_data$MiscFeature[is.na(combined_data$MiscFeature)] = "None"
-combined_data$MiscVal
+HousePricing$BldgType = as.factor(HousePricing$BldgType)
+HousePricing$HouseStyle=as.factor(HousePricing$HouseStyle)
 
 
-# sales type ####
-unique(combined_data$SaleType)
-table(combined_data$SaleType)
-combined_data$SaleType[is.na(combined_data$SaleType)] = 'WD'
+HousePricing$RoofMatl=as.factor(HousePricing$RoofMatl)
+HousePricing$Exterior1st=as.factor(HousePricing$Exterior1st)
+HousePricing$Exterior2nd=as.factor(HousePricing$Exterior2nd)
+HousePricing$ExterQual=recode(HousePricing$ExterQual,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+HousePricing$ExterCond=recode(HousePricing$ExterCond,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+HousePricing$Foundation = as.factor(HousePricing$Foundation)
+HousePricing$PavedDrive=recode(HousePricing$PavedDrive,'N' = 0,'P' = 1,'Y' = 2)
+HousePricing$Heating = as.factor(HousePricing$Heating)
+HousePricing$HeatingQC=recode(HousePricing$HeatingQC,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+HousePricing$CentralAir=recode(HousePricing$CentralAir,'N' = 0,'Y' = 1)
 
 
-# Changing characters to Factors variables
-# apply(combined_data,1, function(x){ if(class(x) == "character"){x = as.factor(x)}})
-combined_data = as.data.frame(unclass(combined_data))
-
-# some numeric data to factor
-combined_data$MSSubClass = as.factor(combined_data$MSSubClass)
-
+HousePricing$KitchenQual=recode(HousePricing$KitchenQua,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+HousePricing$Functional=recode(HousePricing$Functional,'Sal' = 0,'Sev' = 1,'Maj2' = 2,'Maj1' = 3,'Mod' = 4,'Min2' = 5,'Min1' = 6,'Typ' = 7)
+HousePricing$Neighborhood = as.factor(HousePricing$Neighborhood)
+HousePricing$SaleType = as.factor(HousePricing$SaleType)
+HousePricing$SaleCondition = as.factor(HousePricing$SaleCondition)
+HousePricing$MoSold = NULL
+HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
 ```
 
+Correlation between the numerical variables
+
+```{r corNum}
+#which(sapply(HousePricing, is.numeric))
+numericVars = which(sapply(HousePricing, is.numeric))#numericVars
+factorVars = which(sapply(HousePricing, is.factor))
+all_numVar = HousePricing[,numericVars]#all_numVar
+cor_numVar =(cor(all_numVar))
+cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+#cor_sorted
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+```
+```{r ffe}
+########################### further feature engineer ###################
+# whether remod 
+HousePricing$Remod = ifelse(HousePricing$YearBuilt == HousePricing$YearRemodAdd,0,1)
+# the age of house 
+HousePricing$age = as.numeric(HousePricing$YrSold) - HousePricing$YearRemodAdd 
+# whether is new
+HousePricing$isnew = ifelse(HousePricing$YrSold == HousePricing$YearBuilt,1,0)
+# total area.
+HousePricing$Totalsf = HousePricing$GrLivArea+HousePricing$TotalBsmtSF
+# sum up the bathroom.
+HousePricing$TotBathrooms <- HousePricing$FullBath + (HousePricing$HalfBath*0.5) + HousePricing$BsmtFullBath + (HousePricing$BsmtHalfBath*0.5)
+numericVars = which(sapply(HousePricing, is.numeric))
+all_numVar = HousePricing[,numericVars]#all_numVar
+
+
+SalePrice = HousePricing[,"SalePrice"]
+all_numVar = subset(all_numVar, select = -c(GrLivArea,BsmtHalfBath,BsmtFullBath,HalfBath,FullBath,SalePrice))
+factor =select_if(HousePricing,is.factor)
+
+########################## Normalizing the numerical data #########################
+snumeric = scale(all_numVar,center = T,scale = T)
+```
+
+As discussed before, we have decided to use logrithmic with base $e$ and square root to process the data. We have also saved $15\%$ of our data into a variable named vault for the final test of each model. 
+
+```{r getFinalData}
+############ one-hot encoding and combine with scaled numerical data #######################################
+factor = model.matrix(~.-1,factor) %>% as.data.frame()
+newdata = cbind(snumeric,factor)
+newdata$SalePrice = SalePrice
+set.seed(1)
+vault = sample(1:nrow(newdata), nrow(newdata)*0.15)
+dVault = newdata[vault,]
+newdata = newdata[-vault,]
+oriHouseP = newdata
+oriHouseP$SalePrice = newdata$SalePrice
+sumOri = summary(oriHouseP$SalePrice)
+sumOri
+logHouseP = newdata
+logHouseP$SalePrice = log(newdata$SalePrice)
+sumLog = summary(logHouseP$SalePrice)
+hist(logHouseP$SalePrice)
+sumLog
+sqrtHouseP = newdata
+sqrtHouseP$SalePrice = '^'(newdata$SalePrice,1/4)
+sumSqrt = summary(sqrtHouseP$SalePrice)
+hist(sqrtHouseP$SalePrice)
+sumSqrt
+```
+
+```{r toFactor}
+toFac <- function(original){
+  result = original
+  result$SalePrice[which(result$SalePrice<=summary(original$SalePrice)["1st Qu."])] = 0
+  result$SalePrice[which(result$SalePrice>=summary(original$SalePrice)["3rd Qu."])] = 2
+  result$SalePrice[which(result$SalePrice<summary(original$SalePrice)["3rd Qu."] & result$SalePrice>summary(original$SalePrice)["1st Qu."])] = 1
+  result$SalePrice = as.factor(result$SalePrice)
+  print(summary(result$SalePrice))
+  return(result)
+}
+
+oriHousePCl = toFac(oriHouseP)
+logHousePCl = toFac(logHouseP)
+sqrtHousePCl = toFac(sqrtHouseP)
+```
 
 
 ```{r prepareNewData, fig.width=5,fig.height=3}
-numvar = which(sapply(combined_data, is.numeric))
-catvar = which(sapply(combined_data, is.factor))
-numdata = combined_data[,numvar]
-numcor =(cor(numdata))
-corsorted = as.matrix(sort(numcor[,"SalePrice"],decreasing = TRUE))
-CorHigh <- names(which(apply(corsorted, 1, function(x) abs(x)>0.5)))
-numcor <- numcor[CorHigh, CorHigh]
-corrplot.mixed(numcor, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-temp = subset(combined_data,select=-SalePrice)
-# standardize numerical data 
-numeric = select_if(temp,is.numeric)
-stnumer = scale(numeric,center = T,scale = T)
-convFact = select_if(temp,is.factor)
-# one hot
-convFact = model.matrix(~.-1,convFact) %>% data.frame()
-SalePrice = log(combined_data$SalePrice)
-# put standardized numerical data and categorical data in one data?
-newdata = cbind(stnumer,convFact,SalePrice)
-
+# numvar = which(sapply(combined_data, is.numeric))
+# catvar = which(sapply(combined_data, is.factor))
+# numdata = combined_data[,numvar]
+# numcor =(cor(numdata))
+# corsorted = as.matrix(sort(numcor[,"SalePrice"],decreasing = TRUE))
+# CorHigh <- names(which(apply(corsorted, 1, function(x) abs(x)>0.5)))
+# numcor <- numcor[CorHigh, CorHigh]
+# corrplot.mixed(numcor, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+# temp = subset(combined_data,select=-SalePrice)
+# # standardize numerical data 
+# numeric = select_if(temp,is.numeric)
+# stnumer = scale(numeric,center = T,scale = T)
+# convFact = select_if(temp,is.factor)
+# # one hot
+# convFact = model.matrix(~.-1,convFact) %>% data.frame()
+# SalePrice = log(combined_data$SalePrice)
+# # put standardized numerical data and categorical data in one data?
+# newdata = cbind(stnumer,convFact,SalePrice)
 ```
 
-## Boostraping
-
-```{r bootstraping}
-set.seed(1234)
-sample = sample(dim(newdata)[1],dim(newdata)[1],replace = T)
-btnewdata = newdata[sample,]
+```{r bootstrapingFunc, include=FALSE}
+bsF<- function(datadf, randomizer){
+  set.seed(randomizer)
+  sample = sample(dim(datadf)[1],dim(datadf)[1],replace = T)
+  btnewdata = datadf[sample,]
+  return(btnewdata)
+}
+newOriHouseP = bsF(oriHouseP, 1234)
+newLogHouseP = bsF(logHouseP, 1234)
+newSqrtHouseP = bsF(sqrtHouseP, 1234)
+newOriHousePCl = bsF(oriHousePCl, 1234)
+newLogHousePCl = bsF(logHousePCl, 1234)
+newSqrtHousePCl = bsF(sqrtHousePCl, 1234)
 ```
 
 
@@ -459,56 +475,98 @@ btnewdata = newdata[sample,]
 
 Spearate by 70% train, 30% test. 
 
-```{r prepareClassification}
-# clbtnewdata=transform(btnewdata,SalePrice=ifelse(SalePrice>168000,1,0))
+```{r saveToCSV}
+toCsv <- function(df, fileName){
+  set.seed(10)
+  randS = sample(1:nrow(df), nrow(df)*0.7)
+  train = df[randS,]
+  test = df[-randS,]
+  write.csv(train,paste("./SourceData/train_",fileName, ".csv",sep=""), row.names = FALSE)
+  write.csv(test,paste("./SourceData/test_",fileName, ".csv",sep=""), row.names = FALSE)
+}
+
+toCsv(oriHouseP, "original")
+toCsv(logHouseP, "log")
+toCsv(sqrtHouseP, "sqrt")
+toCsv(oriHousePCl, "original_cl")
+toCsv(logHousePCl, "log_cl")
+toCsv(sqrtHousePCl, "sqrt_cl")
+
 ```
 
-```{r separateDataReg}
-#set.seed(1)
-#randS = sample(1:nrow(btnewdata), nrow(btnewdata)*0.7)
-#train = btnewdata[randS,]
-#test = btnewdata[-randS,]
+
+
+```{r oriTestTrainReg, include=FALSE}
+test_ori = read.csv("./SourceData/test_original.csv")
+y_test_ori = test_ori$SalePrice
+x_test_ori = subset (test_ori, select = -SalePrice)
+train_ori = read.csv("./SourceData/train_original.csv")
+y_train_ori = train_ori$SalePrice
+x_train_ori = subset (train_ori, select = -SalePrice)
+y_train_ori = as.numeric(y_train_ori)
+y_test_ori = as.numeric(y_test_ori)
+summary(y_train_ori)
 ```
 
-```{r separateDataClass}
-#set.seed(12345)
-#randS = sample(1:nrow(clbtnewdata), nrow(btnewdata)*0.7)
-#trainCl = clbtnewdata[randS,]
-#testCl = clbtnewdata[-randS,]
+```{r logTestTrainReg, include=FALSE}
+test_log = read.csv("./SourceData/test_log.csv")
+y_test_log = test_ori$SalePrice
+x_test_log = subset (test_log, select = -SalePrice)
+train_log = read.csv("./SourceData/train_log.csv")
+y_train_log = train_log$SalePrice
+x_train_log = subset (train_log, select = -SalePrice)
+y_train_log = as.numeric(y_train_log)
+y_test_log = as.numeric(y_test_log)
+summary(y_train_log)
 ```
 
-```{r writeToCSV}
-#write.csv(train,"./SourceData/train_p3.csv", row.names = FALSE)
-#write.csv(test,"./SourceData/test_p3.csv", row.names = FALSE)
+```{r oriTestTrainReg, include=FALSE}
+test_sqrt = read.csv("./SourceData/test_sqrt.csv")
+y_test_sqrt = test_sqrt$SalePrice
+x_test_sqrt = subset (test_sqrt, select = -SalePrice)
+train_sqrt = read.csv("./SourceData/train_sqrt.csv")
+y_train_sqrt = train_sqrt$SalePrice
+x_train_sqrt = subset (train_sqrt, select = -SalePrice)
+y_train_sqrt = as.numeric(y_train_sqrt)
+y_test_sqrt = as.numeric(y_test_sqrt)
+summary(y_train_sqrt)
 ```
 
-```{r newCSVTestTrainReg}
-test = read.csv("./SourceData/test_p3.csv")
-y_test = test$SalePrice
-x_test = subset (test, select = -SalePrice)
-train = read.csv("./SourceData/train_p3.csv")
-y_train = train$SalePrice
-x_train = subset (train, select = -SalePrice)
-y_train = as.numeric(y_train)
-y_test = as.numeric(y_test)
-summary(y_train)
+```{r oriTestTrainCl, include=FALSE}
+test_ori_cl = read.csv("./SourceData/test_original_cl.csv")
+y_test_ori_cl = test_ori_cl$SalePrice
+x_test_ori_cl = subset (test_ori_cl, select = -SalePrice)
+train_ori_cl = read.csv("./SourceData/train_original_cl.csv")
+y_train_ori_cl = train_ori_cl$SalePrice
+x_train_ori_cl = subset (train_ori_cl, select = -SalePrice)
+y_train_ori_cl = as.factor(y_train_ori_cl)
+y_test_ori_cl = as.factor(y_test_ori_cl)
+summary(y_train_ori_cl)
 ```
 
-```{r newCSVTestTrainCl}
-test_cl = read.csv("./SourceData/test_p_cl.csv")
-y_test_cl = test$SalePrice
-x_test_cl = subset (test, select = -SalePrice)
-train_cl = read.csv("./SourceData/train_p_cl.csv")
-y_train_cl = train_cl$SalePrice
-x_train_cl = subset (train, select = -SalePrice)
-y_train_cl = as.factor(y_train_cl)
-y_test_cl = as.factor(y_test_cl)
-summary(y_train_cl)
+```{r logTestTrainCl, include=FALSE}
+test_log_cl = read.csv("./SourceData/test_original_cl.csv")
+y_test_log_cl = test_log_cl$SalePrice
+x_test_log_cl = subset (test_log_cl, select = -SalePrice)
+train_log_cl = read.csv("./SourceData/train_original_cl.csv")
+y_train_log_cl = train_log_cl$SalePrice
+x_train_log_cl = subset (train_log_cl, select = -SalePrice)
+y_train_log_cl = as.factor(y_train_log_cl)
+y_test_log_cl = as.factor(y_test_log_cl)
+summary(y_train_ori_cl)
 ```
 
-# Hierachical
-
-Each team member bootstraps training data. 
+```{r sqrtTestTrainCl, include=FALSE}
+test_sqrt_cl = read.csv("./SourceData/test_original_cl.csv")
+y_test_sqrt_cl = test_sqrt_cl$SalePrice
+x_test_sqrt_cl = subset (test_sqrt_cl, select = -SalePrice)
+train_sqrt_cl = read.csv("./SourceData/train_original_cl.csv")
+y_train_sqrt_cl = train_sqrt_cl$SalePrice
+x_train_sqrt_cl = subset (train_sqrt_cl, select = -SalePrice)
+y_train_sqrt_cl = as.factor(y_train_sqrt_cl)
+y_test_sqrt_cl = as.factor(y_test_sqrt_cl)
+summary(y_train_ori_cl)
+```
 
 # Prediction Algorithms
 
@@ -519,15 +577,35 @@ Remember to report RMSE
 
 ## Regression Methods
 
-### 1. PCR (Iris)
+### 1. Linear Regression 
 
-```{r PCR}
-set.seed(2)
-# Need help with PCA analysis
-# pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
+#### Explanation
+
+We have chosen this model to understand how each numeric variable is linear related to our House Price prediction.
+
+```{r lrlog}
+lm_model = lm(formula = SalePrice ~.,data = train_log)
+summary(lm_model)
 ```
 
-#### Cross Validation
+```{r lrsqrt}
+lm_model = lm(formula = SalePrice ~.,data = train_log)
+summary(lm_model)
+```
+
+#### Check Accuracy
+
+```{r lr2}
+# Multiple R-squared: 0.9475, 
+# Adjusted R-squared: 0.9345  
+# F-statistic:  73.09  on 289 and 1170 DF, 
+# p-value: < 2.2e-16
+lm_log_pred = predict(lm_model, newdata = test_log)
+accuracy = mean(abs(y_test_log - '^'(10,lm_log_pred))/y_test_log<=0.05)
+printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
+#lm_pred  = exp(lm_pred)
+#result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
+```
 
 ### 2. Random Forest
 
@@ -544,8 +622,8 @@ The following is the result from Random Forest algorithm:
 ```{r rf-preparemodel}
 # Need to figure out how many independent variables then set mtry
 # set mtry to be square root of total number of independent variables
-totalIV = length(colnames(train))
-rfTrain=randomForest(SalePrice~.,data=train, mtry=sqrt(totalIV),importance =TRUE)
+totalIV = length(colnames(train_ori))
+rfTrain=randomForest(SalePrice~.,data=train_ori, mtry=sqrt(totalIV),importance =TRUE)
 pander(rfTrain)
 ```
 
@@ -554,9 +632,9 @@ pander(rfTrain)
 We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the $\pm 5\%$ range. The following is the result. 
 
 ```{r rfAccuracy}
-rfYhat = predict(rfTrain, newdata=x_test)
+rfYhat = predict(rfTrain, newdata=x_test_ori)
 #table(y_test, rfYhat)
-accuracy = mean(abs(y_test - rfYhat)/y_test<=0.05)
+accuracy = mean(abs(y_test_ori - rfYhat)/y_test_ori<=0.05)
 printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
 ```
 
@@ -564,7 +642,7 @@ printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
 
 Then let us take a look at the MSE of this model: 
 ```{r rfMSE}
-printf("We have the MSE of the model approximately %.5f", mean((rfYhat-test$SalePrice)^2))
+printf("We have the MSE of the model approximately equal to %.5f", mean((rfYhat-test_ori$SalePrice)^2))
 
 ```
 
@@ -592,8 +670,8 @@ From the random forest analysis, we have discovered that the top three most impo
 
 \begin{enumerate}
 \item OverallQual (Overall Quality of the building)
-\item BsmtFinSF1 (Type 1 finished square feet)
-\item LotArea (Area of Parking Lot of the Building)
+\item ExterQual (Evaluates the quality of the material on the exterior)
+\item YearBuilt (The year the house is built)
 \end{enumerate}
 
 #### Cross Validation
@@ -604,77 +682,20 @@ In the cross validation, we have chosen to look at $R^2$, RMSE and MAE.
 set.seed(123) 
   
 # computing model performance metrics 
-pander(data.frame( R2 = R2(rfYhat, y_test), 
-            RMSE = RMSE(rfYhat, y_test), 
-            MAE = MAE(rfYhat, y_test)), title="Cross Validation for Random Forest")
+pander(data.frame( R2 = R2(rfYhat, y_test_ori), 
+            RMSE = RMSE(rfYhat, y_test_ori), 
+            MAE = MAE(rfYhat, y_test_ori)), title="Cross Validation for Random Forest")
 ```
 
-### 3. GAM
+### 3. PCR (Iris)
 
-#### Explanation
-
-We have chosen GAM as one of our models because it produces an analysis on those factors that have less linear relationship with the result, for instance LotFrontage, YearRemodAdd, and MasVnrArea that are having relatively high importance but also high p-value that makes them not very linear related to SalePrice. 
-
-1) GAM1
-
-In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors, with YearRemodAdd having a degree of freedom 2. We obtain the following result:
-
-```{r GAM1, fig.width=5,fig.height=6}
-fit1 = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train)
-printf("Deviance of Model 1 approximately %.2f", deviance(fit1))
-pred1 = predict(fit1, newdata=x_test)
-par(mfrow=c(2,1))
-accuracy = mean(abs(y_test - pred1)/y_test<=0.05)
-printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
-plot(fit1 , se=TRUE , col="red")
+```{r PCR}
+set.seed(2)
+# Need help with PCA analysis
+# pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
 ```
-
-2) GAM2
-
-In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors. None of them has a degree of freedom in the fit. We obtain the following result:
-
-```{r GAM2, fig.width=5,fig.height=3}
-fit2 = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train)
-printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
-pred2 = predict(fit2, newdata=x_test)
-accuracy = mean(abs(y_test - pred2)/y_test<=0.05)
-printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
-plot(fit2 , se=TRUE , col="red")
-```
-
-3) GAM3
-
-In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictorswith LotFrontage having a degree of freedom of 3. We obtain the following result:
-
-```{r GAM3, fig.width=5,fig.height=3}
-fit3 = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train)
-printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
-pred3 = predict(fit3, newdata=x_test)
-accuracy = mean(abs(y_test - pred3)/y_test<=0.05)
-printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
-plot(fit3 , se=TRUE , col="red")
-```
-
-GAM Summary
-
-We then take an ANOVA test to understand which model is the best and we have the following result:
-
-```{r GAMSummary}
-anova(fit1,fit2,fit3,test="F")
-```
-We can see that from the anova test that P-value for the second model is the smallest, therefore, it is the most preferred.  
 
 #### Cross Validation
-
-Then, we conduct a cross-validation on the second model only. 
-
-```{r GAMCV}
-set.seed(123) 
-
-pander(data.frame( R2 = R2(pred2, y_test), 
-            RMSE = RMSE(pred2, y_test), 
-            MAE = MAE(pred2, y_test)), title="Cross Validation of Model 2")
-```
 
 ### 4. Ridge Regression
 
@@ -790,6 +811,121 @@ Then let us take a look at the MSE of this model:
 sqrt(mean((Lasso.Pred -exp(y_test))^2))
 pander(data.frame(R2 = R2(Lasso.Pred,y_test), RMSE = RMSE(Lasso.Pred,y_test),MAE = MAE(Lasso.Pred,y_test)), title="Cross Validation of Lasso Regression")
 ```
+
+### 6. GAM
+
+#### Explanation
+
+We have chosen GAM as one of our models because it produces an analysis on those factors that have less linear relationship with the result, for instance LotFrontage, YearRemodAdd, and MasVnrArea that are having relatively high importance but also high p-value that makes them not very linear related to SalePrice. 
+
+1) GAM1
+
+In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors, with YearRemodAdd having a degree of freedom 2. We obtain the following result:
+
+```{r GAM1, fig.width=5,fig.height=6}
+fit1 = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_ori)
+printf("Deviance of Model 1 approximately %.2f", deviance(fit1))
+pred1 = predict(fit1, newdata=x_test_ori)
+par(mfrow=c(2,1))
+accuracy = mean(abs(y_test_ori - pred1)/y_test_ori<=0.05)
+printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
+plot(fit1 , se=TRUE , col="red")
+
+fit1_log = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_log)
+printf("Deviance of Model 1 approximately %.2f", deviance(fit1_log))
+pred1 = predict(fit1, newdata=x_test_log)
+par(mfrow=c(2,1))
+accuracy = mean(abs(y_test_log - pred1)/y_test_log<=0.05)
+printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
+plot(fit1_log , se=TRUE , col="red")
+
+fit1_sqrt = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_sqrt)
+printf("Deviance of Model 1 approximately %.2f", deviance(fit1_sqrt))
+pred1 = predict(fit1, newdata=x_test_sqrt)
+par(mfrow=c(2,1))
+accuracy = mean(abs(y_test_sqrt - pred1)/y_test_sqrt<=0.05)
+printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
+plot(fit1_sqrt , se=TRUE , col="red")
+```
+
+2) GAM2
+
+In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors. None of them has a degree of freedom in the fit. We obtain the following result:
+
+```{r GAM2, fig.width=5,fig.height=3}
+fit2 = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_ori)
+printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
+pred2 = predict(fit2, newdata=x_test_ori)
+accuracy = mean(abs(y_test_ori - pred2)/y_test_ori<=0.05)
+printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
+plot(fit2 , se=TRUE , col="red")
+
+fit2_log = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_log)
+printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
+pred2 = predict(fit2, newdata=x_test_log)
+accuracy = mean(abs(y_test_log - pred2)/y_test_log<=0.05)
+printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
+plot(fit2_log , se=TRUE , col="red")
+
+fit2_sqrt = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_sqrt)
+printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
+pred2 = predict(fit2, newdata=x_test_sqrt)
+accuracy = mean(abs(y_test_sqrt - pred2)/y_test_sqrt<=0.05)
+printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
+plot(fit2_sqrt , se=TRUE , col="red")
+```
+
+3) GAM3
+
+In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictorswith LotFrontage having a degree of freedom of 3. We obtain the following result:
+
+```{r GAM3, fig.width=5,fig.height=3}
+fit3 = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_ori)
+printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
+pred3 = predict(fit3, newdata=x_test_ori)
+accuracy = mean(abs(y_test_ori - pred3)/y_test_ori<=0.05)
+printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+plot(fit3 , se=TRUE , col="red")
+
+fit3_log = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_log)
+printf("Deviance of Model 3 approximately %.2f", deviance(fit3_log))
+pred3 = predict(fit3_log, newdata=x_test_log)
+accuracy = mean(abs(y_test_log - pred3)/y_test_log<=0.05)
+printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+plot(fit3_log, se=TRUE , col="red")
+
+fit3_sqrt = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_sqrt)
+printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
+pred3 = predict(fit3_sqrt, newdata=x_test_sqrt)
+accuracy = mean(abs(y_test_sqrt - pred3)/y_test_sqrt<=0.05)
+printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+plot(fit3_sqrt , se=TRUE , col="red")
+```
+
+GAM Summary
+
+We then take an ANOVA test to understand which model is the best and we have the following result:
+
+```{r GAMSummary}
+anova(fit1,fit2,fit3,test="F")
+anova(fit1_log,fit2_log,fit3_log,test="F")
+anova(fit1_sqrt,fit2_sqrt,fit3_sqrt,test="F")
+```
+We can see that from the anova test that P-value for the second model is the smallest, therefore, it is the most preferred.  
+
+#### Cross Validation
+
+Then, we conduct a cross-validation on the second model only. 
+
+```{r GAMCV}
+set.seed(123) 
+
+pander(data.frame( R2 = R2(pred2, y_test_ori), 
+            RMSE = RMSE(pred2, y_test_ori), 
+            MAE = MAE(pred2, y_test_ori)), title="Cross Validation of Model 2")
+```
+
+
 
 ### 6. Splines (Jingfeng)
 
