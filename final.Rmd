@@ -628,15 +628,57 @@ Remember to report RMSE
 #### Explanation
 
 We have chosen this model to understand how each numeric variable is linear related to our House Price prediction.
-
-```{r lrlog}
-lm_log_model = lm(formula = SalePrice ~.,data = train_log)
-summary(lm_log_model)
+```{r lr ori}
+# ori
+k = 5
+lm_ori_accuracy = rep(0,k)
+for (i in 1:k){
+  set.seed(100+i)
+  sample = sample(nrow(train_ori),nrow(train_ori),replace = T)
+  ori_train = train_ori[sample,]
+  train = sample(nrow(ori_train),0.7*nrow(ori_train))
+  training_dataset = ori_train[train,]
+  validation_dataset = ori_train[-train,]
+  lm_ori_model = glm(formula = SalePrice ~.,data = training_dataset)
+  lm_ori_pred = predict(lm_ori_model,newdata = validation_dataset)
+  lm_ori_accuracy[i] = mean(abs((validation_dataset$SalePrice)- (lm_ori_pred))/(validation_dataset$SalePrice)<=0.05)
+}
+lm_ori_aver_accuracy = mean(lm_ori_accuracy)
 ```
 
-```{r lrsqrt}
-lm_log_model = lm(formula = SalePrice ~.,data = train_log)
-summary(lm_log_model)
+```{r lr log}
+k = 5
+lm_log_accuracy = rep(0,k)
+for (i in 1:k){
+  set.seed(111+i)
+  sample = sample(nrow(train_log),nrow(train_log),replace = T)
+  log_train = train_log[sample,]
+  train = sample(nrow(log_train),0.7*nrow(log_train))
+  training_dataset = log_train[train,]
+  validation_dataset = log_train[-train,]
+  lm_log_model = glm(formula = SalePrice ~.,data = training_dataset)
+  lm_log_pred = predict(lm_log_model,newdata = validation_dataset)
+  lm_log_pred = exp(lm_log_pred)
+  lm_log_accuracy[i] = mean(abs(exp(validation_dataset$SalePrice)-(lm_log_pred))/exp(validation_dataset$SalePrice)<=0.05)
+}
+lm_ori_aver_accuracy = mean(lm_ori_accuracy)
+```
+
+```{r lr sqrt}
+lm_sqrt_accuracy = rep(0,k)
+for (i in 1:k){
+  set.seed(150+i)
+  sample = sample(nrow(train_sqrt),nrow(train_sqrt),replace = T)
+  sqrt_train = train_sqrt[sample,]
+  train = sample(nrow(sqrt_train),0.7*nrow(sqrt_train))
+  training_dataset = sqrt_train[train,]
+  validation_dataset = sqrt_train[-train,]
+  lm_sqrt_model = glm(formula = SalePrice ~.,data = training_dataset)
+  lm_sqrt_pred = predict(lm_sqrt_model,newdata = validation_dataset)
+  lm_sqrt_pred = lm_sqrt_pred^4
+  lm_sqrt_accuracy[i] = mean(abs((validation_dataset$SalePrice)^4- (lm_sqrt_pred))/(validation_dataset$SalePrice)^4<=0.05)
+}
+lm_sqrt_aver_accuracy = mean(lm_sqrt_accuracy)
 ```
 
 #### Check Accuracy
@@ -646,10 +688,25 @@ summary(lm_log_model)
 # Adjusted R-squared: 0.9345  
 # F-statistic:  73.09  on 289 and 1170 DF, 
 # p-value: < 2.2e-16
-lm_log_pred = predict(lm_model, newdata = test_log)
-lm_log_pred = exp(lm_log_pred)
-lm_log_accuracy = mean(abs(exp(y_test_log) - lm_log_pred /exp(y_test_log))<=0.05)
-printf("We have the accuracy of the model approximately %.2f%%", lm_log_accuracy*100)
+
+#accuracy for original 
+lm_ori_accuracy
+lm_ori_aver_accuracy
+printf("We have the accuracy of the linear model approximately %.2f%%", lm_ori_aver_accuracy*100)
+
+# accuracy for log
+lm_log_accuracy
+lm_log_aver_accuary = mean(lm_log_accuracy)
+printf("We have the accuracy of the linear model after log transformation approximately %.2f%%", lm_log_aver_accuary*100)
+
+## accuracy for sqrt
+lm_sqrt_accuracy
+lm_sqrt_aver_accuracy = mean(lm_sqrt_accuracy)
+printf("We have the accuracy of the linear model after sqrt transformation approximately %.2f%%", lm_sqrt_aver_accuracy*100)
+
+lm_accuracy_df = data.frame(lm = c('accuracy'),ori_accuracy = c(lm_aver_accuracy),
+                               log_accuracy = c(lm_log_aver_accuary),
+                               sqrt_accuracy = c(lm_sqrt_aver_accuracy))
 #lm_pred  = exp(lm_pred)
 #result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
 ```
@@ -777,32 +834,171 @@ y_test = test$SalePrice
 
 1. First, we set initial alpha to 1 to fit the ridge regression,and set the values of initial lambda ranging from 10^10 to 10^(-2), essentially covering the full range of scenarios from the null model containing only the intercept, to the least squares fit.
 
-```{r ridgeInitLambda}
-set.seed(1234)
-grid=10^seq(10,-2, length =100)
-Ridge.Alpha=0
-Ridge.Fit = glmnet(X_train, y_train, alpha=Ridge.Alpha, lambda=grid)
-Ridge.Fitcv = cv.glmnet(X_train, y_train, alpha = Ridge.Alpha,nfolds = 10,type.measure = 'deviance')
+```{r ridge }
+# original 
+Ridge_ori_accuracy= rep(0,k)
+Ridge_ori_lambda = rep(0,k)
+Ridge_ori_R2 = rep(0,k)
+Ridge_ori_MAE = rep(0,k)
+Ridge_ori_RMSE = rep(0,k)
+Ridge_ori_coef = 0
+for ( i in 1:k){
+  set.seed(220+i)
+  sample = sample(nrow(train_ori),nrow(train_ori),replace = T)
+  ori_train = train_ori[sample,]
+  train = sample(nrow(ori_train),0.7*nrow(ori_train))
+  training_dataset = ori_train[train,]
+  validation_dataset = ori_train[-train,]
+  X_train = model.matrix(SalePrice~.,data = training_dataset)[,-1]
+  X_test = model.matrix(SalePrice~.,validation_dataset)[,-1]
+  y_train = training_dataset$SalePrice
+  y_test = validation_dataset$SalePrice
+  set.seed(1100+i)
+  grid=10^seq(10,-2, length =100)
+  Ridge.ori.Alpha=0
+  Ridge.ori.Fit = glmnet(X_train, y_train, alpha=Ridge.ori.Alpha, lambda=grid)
+  Ridge.ori.Fitcv = cv.glmnet(X_train, y_train, alpha = Ridge.ori.Alpha,nfolds = 10,type.measure = 'deviance')
+  Ridge.ori.lambda = Ridge.ori.Fitcv$lambda.min
+  Ridge_ori_lambda[i] = Ridge.ori.lambda
+  Ridge.ori.Pred <- predict(Ridge.ori.Fit, s= Ridge.ori.lambda, newx = X_test)
+  Ridge.ori.coef = predict(Ridge.ori.Fit, s = Ridge.ori.lambda, type="coefficients")
+  Ridge_ori_accuracy[i] = mean(abs((y_test) - (Ridge.ori.Pred))/(y_test) <=0.05)
+  Ridge_ori_R2[i] = R2(Ridge.ori.Pred,(y_test))
+  Ridge_ori_RMSE[i]= RMSE(Ridge.ori.Pred,(y_test))
+  Ridge_ori_MAE[i] = MAE(Ridge.ori.Pred,(y_test))
+}
+Ridge_ori_aver_lambda = mean(Ridge_ori_lambda)
+Ridge_ori_aver_accuracy = mean(Ridge_ori_accuracy)
+Ridge_ori_aver_RMSE = mean(Ridge_ori_RMSE)
+Ridge_ori_aver_R2 = mean(Ridge_ori_R2)
+Ridge_ori_aver_MAE = mean(Ridge_ori_MAE)
+Ridge_ori_aver_MAE
+
+# log transformation
+Ridge_log_accuracy= rep(0,k)
+Ridge_log_lambda = rep(0,k)
+Ridge_log_R2 = rep(0,k)
+Ridge_log_MAE = rep(0,k)
+Ridge_log_RMSE = rep(0,k)
+Ridge_log_coef = 0
+for ( i in 1:k){
+  set.seed(200+i)
+  sample = sample(nrow(train_log),nrow(train_log),replace = T)
+  log_train = train_log[sample,]
+  train = sample(nrow(log_train),0.7*nrow(log_train))
+  training_dataset = log_train[train,]
+  validation_dataset = log_train[-train,]
+  X_train = model.matrix(SalePrice~.,data = training_dataset)[,-1]
+  X_test = model.matrix(SalePrice~.,validation_dataset)[,-1]
+  y_train = training_dataset$SalePrice
+  y_test = validation_dataset$SalePrice
+  set.seed(1234+i)
+  grid=10^seq(10,-2, length =100)
+  Ridge.log.Alpha=0
+  Ridge.log.Fit = glmnet(X_train, y_train, alpha=Ridge.log.Alpha, lambda=grid)
+  Ridge.log.Fitcv = cv.glmnet(X_train, y_train, alpha = Ridge.log.Alpha,nfolds = 10,type.measure = 'deviance')
+  Ridge.log.lambda = Ridge.log.Fitcv$lambda.min
+  Ridge_log_lambda[i] = Ridge.log.lambda
+  Ridge.log.Pred <- predict(Ridge.log.Fit, s= Ridge.log.lambda, newx = X_test)
+  Ridge.log.Pred = exp(Ridge.log.Pred)
+  Ridge.log.coef = predict(Ridge.log.Fit, s = Ridge.log.lambda, type="coefficients")
+  Ridge_log_accuracy[i] = mean(abs(exp(y_test) - (Ridge.log.Pred))/exp(y_test) <=0.05)
+  Ridge_log_R2[i] = R2(Ridge.log.Pred,exp(y_test))
+  Ridge_log_RMSE[i]= RMSE(Ridge.log.Pred,exp(y_test))
+  Ridge_log_MAE[i] = MAE(Ridge.log.Pred,exp(y_test))
+}
+Ridge_log_aver_lambda = mean(Ridge_log_lambda)
+Ridge_log_aver_accuracy = mean(Ridge_log_accuracy)
+Ridge_log_aver_RMSE = mean(Ridge_log_RMSE)
+Ridge_log_aver_R2 = mean(Ridge_log_R2)
+Ridge_log_aver_MAE = mean(Ridge_log_MAE)
+
+# sqrt 
+Ridge_sqrt_accuracy= rep(0,k)
+Ridge_sqrt_lambda = rep(0,k)
+Ridge_sqrt_R2 = rep(0,k)
+Ridge_sqrt_MAE = rep(0,k)
+Ridge_sqrt_RMSE = rep(0,k)
+Ridge_sqrt_coef = 0
+for ( i in 1:k){
+  set.seed(200+i)
+  sample = sample(nrow(train_sqrt),nrow(train_sqrt),replace = T)
+  sqrt_train = train_sqrt[sample,]
+  train = sample(nrow(sqrt_train),0.7*nrow(sqrt_train))
+  training_dataset = sqrt_train[train,]
+  validation_dataset = sqrt_train[-train,]
+  X_train = model.matrix(SalePrice~.,data = training_dataset)[,-1]
+  X_test = model.matrix(SalePrice~.,validation_dataset)[,-1]
+  y_train = training_dataset$SalePrice
+  y_test = validation_dataset$SalePrice
+  set.seed(1000+i)
+  grid=10^seq(10,-2, length =100)
+  Ridge.sqrt.Alpha=0
+  Ridge.sqrt.Fit = glmnet(X_train, y_train, alpha=Ridge.sqrt.Alpha, lambda=grid)
+  Ridge.sqrt.Fitcv = cv.glmnet(X_train, y_train, alpha = Ridge.sqrt.Alpha,nfolds = 10,type.measure = 'deviance')
+  Ridge.sqrt.lambda = Ridge.sqrt.Fitcv$lambda.min
+  Ridge_sqrt_lambda[i] = Ridge.sqrt.lambda
+  Ridge.sqrt.Pred <- predict(Ridge.sqrt.Fit, s= Ridge.sqrt.lambda, newx = X_test)
+  Ridge.sqrt.Pred = (Ridge.sqrt.Pred)^4
+  Ridge.sqrt.coef = predict(Ridge.sqrt.Fit, s = Ridge.sqrt.lambda, type="coefficients")
+  Ridge_sqrt_accuracy[i] = mean(abs((y_test)^4 - (Ridge.sqrt.Pred))/(y_test)^4 <=0.05)
+  Ridge_sqrt_R2[i] = R2(Ridge.sqrt.Pred,exp(y_test))
+  Ridge_sqrt_RMSE[i]= RMSE(Ridge.sqrt.Pred,exp(y_test))
+  Ridge_sqrt_MAE[i] = MAE(Ridge.sqrt.Pred,exp(y_test))
+}
+Ridge_sqrt_aver_lambda = mean(Ridge_sqrt_lambda)
+Ridge_sqrt_aver_accuracy = mean(Ridge_sqrt_accuracy)
+Ridge_sqrt_aver_RMSE = mean(Ridge_sqrt_RMSE)
+Ridge_sqrt_aver_R2 = mean(Ridge_sqrt_R2)
+Ridge_sqrt_aver_MAE = mean(Ridge_sqrt_MAE)
 ```
 
 1. Then we use cross validation to choose the optimal lambda for Ridge Regression, as the following:
 
 ```{r ridgeOplam}
-best.lambda1 = Ridge.Fitcv$lambda.min
-best.lambda1
-## with crossvaldiation, we get the optimal lambda is equal to 0.0341
-plot(Ridge.Fitcv)
+# lambda of original 
+Ridge_ori_lambda
+Ridge_ori_aver_lambda
+# lambda of log transformation 
+Ridge_log_lambda
+Ridge_log_aver_lambda
+# lambda of sqrt transformation
+Ridge_sqrt_lambda
+Ridge_sqrt_aver_lambda
+
+## with cross valdiation, we get the optimal lambda is 
+Ridge_ori_aver_lambda
+Ridge_log_aver_lambda
+Ridge_sqrt_aver_lambda
+par(mfrow=c(2,2))
+plot(Ridge.ori.Fitcv)
+plot(Ridge.log.Fitcv)
+plot(Ridge.sqrt.Fitcv)
+par(mfrow = c(1,1))
 ```
 
-#### Check Accuarcy
+#### Check Accuracy
 
 We then need to check accuracy, as assumed before, we would look at whether the predicted data is within $\pm 5\%$. The following is the result.
 
 ```{r ridgeAcc}
-Ridge.Pred <- predict(Ridge.Fit, s= best.lambda1, newx = X_test)
-Ridge.Pred = exp(Ridge.Pred)
-accuary = mean(abs(exp(y_test) - (Ridge.Pred))/exp(y_test) <=0.05)
-printf("Accuracy of Ridge is approximately %.2f%%", accuracy*100)
+# original accuracy
+Ridge_ori_accuracy
+Ridge_ori_aver_accuracy
+printf("Accuracy of Ridge is approximately %.2f%%", Ridge_log_aver_accuracy*100)
+# log accuracy
+Ridge_log_accuracy
+Ridge_log_aver_accuracy = mean(Ridge_log_accuracy)
+printf("Accuracy of Ridge with Log Transformation is approximately %.2f%%", Ridge_log_aver_accuracy*100)
+# sqrt accuracy
+Ridge_sqrt_accuracy
+Ridge_sqrt_aver_accuracy
+printf("Accuracy of Ridge with Sqrt Transformation is approximately %.2f%%", Ridge_sqrt_aver_accuracy*100)
+
+# accuracy dataframe
+Ridge_accuracy_df = data.frame(Ridge = c('accuracy'),ori_accuracy=c(Ridge_ori_aver_accuracy),
+                               log_accuracy = c(Ridge_log_aver_accuracy),
+                               sqrt_accuracy = c(Ridge_sqrt_aver_accuracy))
 ```
 
 #### Cross Validation
@@ -810,8 +1006,24 @@ printf("Accuracy of Ridge is approximately %.2f%%", accuracy*100)
 Then let us take a look at the MSE of this model:
 
 ```{r ridgeCV}
-sqrt(mean((Ridge.Pred -exp(y_test))^2))
-pander(data.frame(R2 = R2(Ridge.Pred,y_test),RMSE = RMSE(Ridge.Pred,y_test),MAE = MAE(Ridge.Pred,y_test)),title="Cross Validation of Ridge Regression")
+# ori
+Ridge_ori_RMSE
+Ridge_ori_aver_RMSE = mean(Ridge_ori_RMSE)
+Ridge_ori_aver_R2 = mean(Ridge_ori_R2)
+Ridge_ori_aver_MAE = mean(Ridge_ori_MAE)
+pander(data.frame(R2 = Ridge_ori_aver_R2,RMSE = Ridge_ori_aver_RMSE,MAE = Ridge_ori_aver_MAE),title="Cross Validation of Ridge Regression")
+# log
+Ridge_log_RMSE
+Ridge_log_aver_RMSE = mean(Ridge_log_RMSE)
+Ridge_log_aver_R2 = mean(Ridge_log_R2)
+Ridge_log_aver_MAE = mean(Ridge_log_MAE)
+pander(data.frame(R2 = Ridge_log_aver_R2, RMSE = Ridge_log_aver_RMSE, MAE = Ridge_log_aver_MAE ), title="Cross Validation of Ridge Regression After Log Transformation")
+# sqrt
+Ridge_sqrt_RMSE
+Ridge_sqrt_aver_RMSE = mean(Ridge_sqrt_RMSE)
+Ridge_sqrt_aver_R2 = mean(Ridge_sqrt_R2)
+Ridge_sqrt_aver_MAE = mean(Ridge_sqrt_MAE)
+pander(data.frame(R2 = Ridge_sqrt_aver_R2, RMSE = Ridge_sqrt_aver_RMSE, MAE = Ridge_sqrt_aver_MAE), title="Cross Validation of Ridge Regression After Sqrt Transformation")
 ```
 
 ### 5. Lasso Regression
@@ -824,20 +1036,154 @@ Lasso regression is pretty similar to Ridge regression. But compare to ridge, La
 
 1. Set the initial alpha is equal to 1 (Ridge regression is 0), and also use the same initial lambda, then try to use cross validation to choose the optimal lambda for Lasso.
 
-```{r lassoInitLambda}
-Lasso.Alpha=1
-grid=10^seq(10,-2, length =100)
-set.seed(123)
-Lasso.Fit = glmnet(X_train, y_train, alpha=Lasso.Alpha, lambda=grid)
-Lasso.Fitcv = cv.glmnet(X_train, y_train, alpha = Lasso.Alpha,nfolds = 10,type.measure = 'deviance')
+```{r lasso}
+# original 
+k=5
+Lasso_ori_accuracy= rep(0,k)
+Lasso_ori_lambda = rep(0,k)
+Lasso_ori_R2 = rep(0,k)
+Lasso_ori_MAE = rep(0,k)
+Lasso_ori_RMSE = rep(0,k)
+Lasso_ori_coef = 0
+for ( i in 1:k){
+  set.seed(300+i)
+  sample = sample(nrow(train_ori),nrow(train_ori),replace = T)
+  ori_train = train_ori[sample,]
+  train = sample(nrow(ori_train),0.7*nrow(ori_train))
+  training_dataset = ori_train[train,]
+  validation_dataset = ori_train[-train,]
+  X_train = model.matrix(SalePrice~.,data = training_dataset)[,-1]
+  X_test = model.matrix(SalePrice~.,validation_dataset)[,-1]
+  y_train = training_dataset$SalePrice
+  y_test = validation_dataset$SalePrice
+  set.seed(1300+i)
+  grid=10^seq(10,-2, length =100)
+  Lasso.ori.Alpha=1
+  Lasso.ori.Fit = glmnet(X_train, y_train, alpha=Lasso.ori.Alpha, lambda=grid)
+  Lasso.ori.Fitcv = cv.glmnet(X_train, y_train, alpha = Lasso.ori.Alpha,nfolds = 10,type.measure = 'deviance')
+  Lasso.ori.lambda = Lasso.ori.Fitcv$lambda.min
+  Lasso_ori_lambda[i] = Lasso.ori.lambda
+  Lasso.ori.Pred <- predict(Lasso.ori.Fit, s= Lasso.ori.lambda, newx = X_test)
+  Lasso.ori.coef = predict(Lasso.ori.Fit, s = Lasso.ori.lambda, type="coefficients")
+  Lasso_ori_coef = Lasso_ori_coef + Lasso.ori.coef 
+  Lasso_ori_accuracy[i] = mean(abs((y_test) - (Lasso.ori.Pred))/(y_test) <=0.05)
+  Lasso_ori_R2[i] = R2(Lasso.ori.Pred,(y_test))
+  Lasso_ori_RMSE[i]= RMSE(Lasso.ori.Pred,(y_test))
+  Lasso_ori_MAE[i] = MAE(Lasso.ori.Pred,(y_test))
+}  
+Lasso_ori_aver_lambda = mean(Lasso_ori_lambda)
+Lasso_ori_aver_accuracy = mean(Lasso_ori_accuracy)
+Lasso_ori_aver_RMSE = mean(Lasso_ori_RMSE)
+Lasso_ori_aver_R2 = mean(Lasso_ori_R2)
+Lasso_ori_aver_MAE = mean(Lasso_ori_MAE)
+Lasso_ori_aver_coef = (Lasso_ori_coef/5)[1:211,]
+
+# log transformation
+k = 5
+Lasso_log_accuracy= rep(0,k)
+Lasso_log_lambda = rep(0,k)
+Lasso_log_R2 = rep(0,k)
+Lasso_log_MAE = rep(0,k)
+Lasso_log_RMSE = rep(0,k)
+Lasso_log_coef = 1
+for ( i in 1:k){
+  set.seed(340+i)
+  sample = sample(nrow(train_log),nrow(train_log),replace = T)
+  log_train = train_log[sample,]
+  train = sample(nrow(log_train),0.7*nrow(log_train))
+  training_dataset = log_train[train,]
+  validation_dataset = log_train[-train,]
+  X_train = model.matrix(SalePrice~.,data = training_dataset)[,-1]
+  X_test = model.matrix(SalePrice~.,validation_dataset)[,-1]
+  y_train = training_dataset$SalePrice
+  y_test = validation_dataset$SalePrice
+  set.seed(1330+i)
+  grid=10^seq(10,-2, length =100)
+  Lasso.log.Alpha=1
+  Lasso.log.Fit = glmnet(X_train, y_train, alpha=Lasso.log.Alpha, lambda=grid)
+  Lasso.log.Fitcv = cv.glmnet(X_train, y_train, alpha = Lasso.log.Alpha,nfolds = 10,type.measure = 'deviance')
+  Lasso.log.lambda = Lasso.log.Fitcv$lambda.min
+  Lasso_log_lambda[i] = Lasso.log.lambda
+  Lasso.log.Pred <- predict(Lasso.log.Fit, s= Lasso.log.lambda, newx = X_test)
+  Lasso.log.Pred = exp(Lasso.log.Pred)
+  Lasso.log.coef = predict(Lasso.log.Fit, s = Lasso.log.lambda, type="coefficients")
+  Lasso_log_coef = Lasso_log_coef + Lasso.log.coef
+  Lasso_log_accuracy[i] = mean(abs(exp(y_test) - (Lasso.log.Pred))/exp(y_test) <=0.05)
+  Lasso_log_R2[i] = R2(Lasso.log.Pred,exp(y_test))
+  Lasso_log_RMSE[i]= RMSE(Lasso.log.Pred,exp(y_test))
+  Lasso_log_MAE[i] = MAE(Lasso.log.Pred,exp(y_test))
+}  
+Lasso_log_aver_coef = (Lasso_log_coef/5)[1:211,]
+Lasso_log_aver_lambda = mean(Lasso_log_lambda)
+Lasso_log_aver_accuracy = mean(Lasso_log_accuracy)
+Lasso_log_aver_RMSE = mean(Lasso_log_RMSE)
+Lasso_log_aver_R2 = mean(Lasso_log_R2)
+Lasso_log_aver_MAE = mean(Lasso_log_MAE)
+
+# sqrt transformation
+Lasso_sqrt_accuracy= rep(0,k)
+Lasso_sqrt_lambda = rep(0,k)
+Lasso_sqrt_R2 = rep(0,k)
+Lasso_sqrt_MAE = rep(0,k)
+Lasso_sqrt_RMSE = rep(0,k)
+Lasso_sqrt_coef = 1
+for ( i in 1:k){
+  set.seed(360+i)
+  sample = sample(nrow(train_sqrt),nrow(train_sqrt),replace = T)
+  sqrt_train = train_sqrt[sample,]
+  train = sample(nrow(sqrt_train),0.7*nrow(sqrt_train))
+  training_dataset = sqrt_train[train,]
+  validation_dataset = sqrt_train[-train,]
+  X_train = model.matrix(SalePrice~.,data = training_dataset)[,-1]
+  X_test = model.matrix(SalePrice~.,validation_dataset)[,-1]
+  y_train = training_dataset$SalePrice
+  y_test = validation_dataset$SalePrice
+  set.seed(1360+i)
+  grid=10^seq(10,-2, length =100)
+  Lasso.sqrt.Alpha=1
+  Lasso.sqrt.Fit = glmnet(X_train, y_train, alpha=Lasso.sqrt.Alpha, lambda=grid)
+  Lasso.sqrt.Fitcv = cv.glmnet(X_train, y_train, alpha = Lasso.sqrt.Alpha,nfolds = 10,type.measure = 'deviance')
+  Lasso.sqrt.lambda = Lasso.sqrt.Fitcv$lambda.min
+  Lasso_sqrt_lambda[i] = Lasso.sqrt.lambda
+  Lasso.sqrt.Pred = predict(Lasso.sqrt.Fit, s= Lasso.sqrt.lambda, newx = X_test)
+  Lasso.sqrt.Pred = Lasso.sqrt.Pred^4
+  Lasso.sqrt.coef = predict(Lasso.sqrt.Fit, s = Lasso.sqrt.lambda, type="coefficients")
+  Lasso_sqrt_coef = Lasso_sqrt_coef + Lasso.sqrt.coef 
+  Lasso_sqrt_accuracy[i] = mean(abs((y_test)^4 - (Lasso.sqrt.Pred))/(y_test)^4 <=0.05)
+  Lasso_sqrt_R2[i] = R2(Lasso.sqrt.Pred,(y_test)^4)
+  Lasso_sqrt_RMSE[i]= RMSE(Lasso.sqrt.Pred,(y_test)^4)
+  Lasso_sqrt_MAE[i] = MAE(Lasso.sqrt.Pred,(y_test)^4)
+}  
+Lasso_sqrt_aver_coef = (Lasso_sqrt_coef/5)[1:211,]
+Lasso_sqrt_aver_lambda = mean(Lasso_sqrt_lambda)
+Lasso_sqrt_aver_accuracy = mean(Lasso_sqrt_accuracy)
+Lasso_sqrt_aver_RMSE = mean(Lasso_sqrt_RMSE)
+Lasso_sqrt_aver_R2 = mean(Lasso_sqrt_R2)
+Lasso_sqrt_aver_MAE = mean(Lasso_sqrt_MAE)
 ```
 
 1. With cross validation, we find out the optimal lambda as following:
 
 ```{r lassoOplam}
-best.lambda = Lasso.Fitcv$lambda.min
-best.lambda
-plot(Lasso.Fitcv)
+# lambda of original 
+Lasso_ori_lambda
+Lasso_ori_aver_lambda
+# lambda of log transformation 
+Lasso_log_lambda
+Lasso_log_aver_lambda
+# lambda of sqrt transformation
+Lasso_sqrt_lambda
+Lasso_sqrt_aver_lambda
+
+## with cross valdiation, we get the optimal lambda is 
+Lasso_ori_aver_lambda
+Lasso_log_aver_lambda
+Lasso_sqrt_aver_lambda
+par(mfrow=c(2,2))
+plot(Lasso.ori.Fitcv)
+plot(Lasso.log.Fitcv)
+plot(Lasso.sqrt.Fitcv)
+par(mfrow = c(1,1))
 ```
 
 #### Coefficient From Lasso Regression
@@ -845,19 +1191,38 @@ plot(Lasso.Fitcv)
 Here we are going to show the predictors lasso choosed.
 
 ```{r lassoImp}
-lasso.coef = predict(Lasso.Fit, s = best.lambda, type="coefficients")[1:53,]
-sort(lasso.coef[lasso.coef!=0],decreasing = TRUE)
+# coefficient chose by Lasso
+names(head(sort(Lasso_ori_aver_coef[Lasso_ori_aver_coef!=0],decreasing = TRUE),10))
+
+# coefficient chose by Lasso after log transformation 
+names(head(sort(Lasso_log_aver_coef[Lasso_log_aver_coef!=0],decreasing = TRUE),10))
+
+# coefficient chose by Lassoafter sqrt transformation 
+names(head(sort(Lasso_sqrt_aver_coef[Lasso_sqrt_aver_coef!=0],decreasing = TRUE),10))
 ```
 
-#### Check Accuarcy
+#### Check accuracy
 
 We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the $\pm 5\%$ range. The following is the result.
 
 ```{r lassoAcc}
-Lasso.Pred =  predict(Lasso.Fit, s= best.lambda, newx = X_test)
-Lasso.Pred = exp(Lasso.Pred)
-accuary1 = mean(abs(exp(y_test) - Lasso.Pred)/exp(y_test) <=0.05)
-printf("Accuracy of Lasso is approximately %.2f%%", accuary1*100)
+# original accuracy
+Lasso_ori_accuracy
+Lasso_ori_aver_accuracy
+printf("Accuracy of Lasso is approximately %.2f%%", Lasso_log_aver_accuracy*100)
+# log accuracy
+Lasso_log_accuracy
+Lasso_log_aver_accuracy = mean(Lasso_log_accuracy)
+printf("Accuracy of Lasso with Log Transformation is approximately %.2f%%", Lasso_log_aver_accuracy*100)
+# sqrt accuracy
+Lasso_sqrt_accuracy
+Lasso_sqrt_aver_accuracy
+printf("Accuracy of Lasso with Sqrt Transformation is approximately %.2f%%", Lasso_sqrt_aver_accuracy*100)
+
+# accuracy dataframe
+Lasso_accuracy_df = data.frame(Lasso = c('accuracy'),ori_accuracy=c(Lasso_ori_aver_accuracy),
+                               log_accuracy = c(Lasso_log_aver_accuracy),
+                               sqrt_accuracy = c(Lasso_sqrt_aver_accuracy))
 ```
 
 #### Cross Validation
@@ -865,8 +1230,25 @@ printf("Accuracy of Lasso is approximately %.2f%%", accuary1*100)
 Then let us take a look at the MSE of this model:
 
 ```{r lassoCV}
-sqrt(mean((Lasso.Pred -exp(y_test))^2))
-pander(data.frame(R2 = R2(Lasso.Pred,y_test), RMSE = RMSE(Lasso.Pred,y_test),MAE = MAE(Lasso.Pred,y_test)), title="Cross Validation of Lasso Regression")
+# ori
+Lasso_ori_RMSE
+Lasso_ori_aver_RMSE = mean(Lasso_ori_RMSE)
+Lasso_ori_aver_R2 = mean(Lasso_ori_R2)
+Lasso_ori_aver_MAE = mean(Lasso_ori_MAE)
+pander(data.frame(R2 = Lasso_ori_aver_R2,RMSE = Lasso_ori_aver_RMSE,MAE = Lasso_ori_aver_MAE),title="Cross Validation of Lasso Regression")
+# log
+Lasso_log_RMSE
+Lasso_log_aver_RMSE = mean(Lasso_log_RMSE)
+Lasso_log_aver_R2 = mean(Lasso_log_R2)
+Lasso_log_aver_MAE = mean(Lasso_log_MAE)
+pander(data.frame(R2 = Lasso_log_aver_R2, RMSE = Lasso_log_aver_RMSE, MAE = Lasso_log_aver_MAE ), title="Cross Validation of Lasso Regression After Log Transformation")
+# sqrt
+Lasso_sqrt_RMSE
+Lasso_sqrt_aver_RMSE = mean(Lasso_sqrt_RMSE)
+Lasso_sqrt_aver_R2 = mean(Lasso_sqrt_R2)
+Lasso_sqrt_aver_MAE = mean(Lasso_sqrt_MAE)
+pander(data.frame(R2 = Lasso_sqrt_aver_R2, RMSE = Lasso_sqrt_aver_RMSE, MAE = Lasso_sqrt_aver_MAE), title="Cross Validation of Lasso Regression After Sqrt Transformation")
+
 ```
 
 ### 6. GAM
