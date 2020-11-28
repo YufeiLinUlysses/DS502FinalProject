@@ -82,7 +82,7 @@ Given that our data is aimed at predicting Sale Price of a house, it is unreason
 We have chosen to eliminate the Id column from this dataset because Id has nothing to do with our prediction and would mess up our prediction. We save data in "train.csv"" from Kaggle into a variable named \textbf{HousePricing} for further processing and we will separate it into training and testing set. For each model Bootstrapping will be performed before each model's training process.   
 
 ```{r readData}
-HousePricing = read.csv("./SourceData/train.csv")
+HousePricing = read.csv("./SourceData/train_new.csv")
 HousePricing = subset(HousePricing,select=-Id)
 ```
 
