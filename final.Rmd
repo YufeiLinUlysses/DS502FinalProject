@@ -51,6 +51,7 @@ library(caret)
 library(mgcv)
 library(Metrics)
 library(visreg)
+library(boot)
 library('ggthemes') 
 library('scales')
 library('mice')
@@ -534,10 +535,6 @@ toCsv <- function(df, fileName){
 toCsv(oriHouseP, "original")
 toCsv(logHouseP, "log")
 toCsv(sqrtHouseP, "sqrt")
-toCsv(oriHousePCl, "original_cl")
-toCsv(logHousePCl, "log_cl")
-toCsv(sqrtHousePCl, "sqrt_cl")
-
 ```
 
 
@@ -566,7 +563,7 @@ y_test_log = as.numeric(y_test_log)
 summary(y_train_log)
 ```
 
-```{r oriTestTrainReg, include=FALSE}
+```{r sqrtTestTrainReg, include=FALSE}
 test_sqrt = read.csv("./SourceData/test_sqrt.csv")
 y_test_sqrt = test_sqrt$SalePrice
 x_test_sqrt = subset (test_sqrt, select = -SalePrice)
@@ -704,7 +701,7 @@ lm_sqrt_accuracy
 lm_sqrt_aver_accuracy = mean(lm_sqrt_accuracy)
 printf("We have the accuracy of the linear model after sqrt transformation approximately %.2f%%", lm_sqrt_aver_accuracy*100)
 
-lm_accuracy_df = data.frame(lm = c('accuracy'),ori_accuracy = c(lm_aver_accuracy),
+lm_accuracy_df = data.frame(lm = c('accuracy'),ori_accuracy = c(lm_ori_aver_accuracy),
                                log_accuracy = c(lm_log_aver_accuary),
                                sqrt_accuracy = c(lm_sqrt_aver_accuracy))
 #lm_pred  = exp(lm_pred)
@@ -822,14 +819,14 @@ The reason we choose Ridge regression model is Ridge regression is very similar 
 1. Bootstrap Training Data
 
 ```{r ridgebs}
-set.seed(2)
-bs = sample(dim(train)[1],dim(train)[1],replace = T)
-train = train[bs,]
-
-X_train = model.matrix(SalePrice~.,data = train)[,-1]
-X_test = model.matrix(SalePrice~.,test)[,-1]
-y_train = train$SalePrice
-y_test = test$SalePrice
+# set.seed(2)
+# bs = sample(dim(train)[1],dim(train)[1],replace = T)
+# train = train[bs,]
+# 
+# X_train = model.matrix(SalePrice~.,data = train)[,-1]
+# X_test = model.matrix(SalePrice~.,test)[,-1]
+# y_train = train$SalePrice
+# y_test = test$SalePrice
 ```
 
 1. First, we set initial alpha to 1 to fit the ridge regression,and set the values of initial lambda ranging from 10^10 to 10^(-2), essentially covering the full range of scenarios from the null model containing only the intercept, to the least squares fit.
@@ -971,9 +968,9 @@ Ridge_ori_aver_lambda
 Ridge_log_aver_lambda
 Ridge_sqrt_aver_lambda
 par(mfrow=c(2,2))
-plot(Ridge.ori.Fitcv)
-plot(Ridge.log.Fitcv)
-plot(Ridge.sqrt.Fitcv)
+# plot(Ridge_ori_Fitcv)
+# plot(Ridge_log_Fitcv)
+# plot(Ridge_sqrt_Fitcv)
 par(mfrow = c(1,1))
 ```
 
@@ -1180,9 +1177,9 @@ Lasso_ori_aver_lambda
 Lasso_log_aver_lambda
 Lasso_sqrt_aver_lambda
 par(mfrow=c(2,2))
-plot(Lasso.ori.Fitcv)
-plot(Lasso.log.Fitcv)
-plot(Lasso.sqrt.Fitcv)
+# plot(Lasso.ori.Fitcv)
+# plot(Lasso.log.Fitcv)
+# plot(Lasso.sqrt.Fitcv)
 par(mfrow = c(1,1))
 ```
 
@@ -1209,7 +1206,7 @@ We then need to check accuracy, as assumed before, we would look at whether the 
 # original accuracy
 Lasso_ori_accuracy
 Lasso_ori_aver_accuracy
-printf("Accuracy of Lasso is approximately %.2f%%", Lasso_log_aver_accuracy*100)
+printf("Accuracy of Lasso is approximately %.2f%%", Lasso_ori_aver_accuracy*100)
 # log accuracy
 Lasso_log_accuracy
 Lasso_log_aver_accuracy = mean(Lasso_log_accuracy)
@@ -1262,29 +1259,29 @@ We have chosen GAM as one of our models because it produces an analysis on those
 In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors, with YearRemodAdd having a degree of freedom 2. We obtain the following result:
 
 ```{r GAM1, fig.width=5,fig.height=6}
-fit1 = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_ori)
-printf("Deviance of Model 1 approximately %.2f", deviance(fit1))
-pred1 = predict(fit1, newdata=x_test_ori)
-par(mfrow=c(2,1))
-accuracy = mean(abs(y_test_ori - pred1)/y_test_ori<=0.05)
-printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
-plot(fit1 , se=TRUE , col="red")
-
-fit1_log = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_log)
-printf("Deviance of Model 1 approximately %.2f", deviance(fit1_log))
-pred1 = predict(fit1, newdata=x_test_log)
-par(mfrow=c(2,1))
-accuracy = mean(abs(y_test_log - pred1)/y_test_log<=0.05)
-printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
-plot(fit1_log , se=TRUE , col="red")
-
-fit1_sqrt = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_sqrt)
-printf("Deviance of Model 1 approximately %.2f", deviance(fit1_sqrt))
-pred1 = predict(fit1, newdata=x_test_sqrt)
-par(mfrow=c(2,1))
-accuracy = mean(abs(y_test_sqrt - pred1)/y_test_sqrt<=0.05)
-printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
-plot(fit1_sqrt , se=TRUE , col="red")
+# fit1 = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_ori)
+# printf("Deviance of Model 1 approximately %.2f", deviance(fit1))
+# pred1 = predict(fit1, newdata=x_test_ori)
+# par(mfrow=c(2,1))
+# accuracy = mean(abs(y_test_ori - pred1)/y_test_ori<=0.05)
+# printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
+# plot(fit1 , se=TRUE , col="red")
+# 
+# fit1_log = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_log)
+# printf("Deviance of Model 1 approximately %.2f", deviance(fit1_log))
+# pred1 = predict(fit1, newdata=x_test_log)
+# par(mfrow=c(2,1))
+# accuracy = mean(abs(y_test_log - pred1)/y_test_log<=0.05)
+# printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
+# plot(fit1_log , se=TRUE , col="red")
+# 
+# fit1_sqrt = gam(SalePrice ~ s(LotFrontage) + ns(YearRemodAdd,2) + MasVnrArea, data = train_sqrt)
+# printf("Deviance of Model 1 approximately %.2f", deviance(fit1_sqrt))
+# pred1 = predict(fit1, newdata=x_test_sqrt)
+# par(mfrow=c(2,1))
+# accuracy = mean(abs(y_test_sqrt - pred1)/y_test_sqrt<=0.05)
+# printf("Accuracy of Model 1 approximately %.2f%%", accuracy*100)
+# plot(fit1_sqrt , se=TRUE , col="red")
 ```
 
 2) GAM2
@@ -1292,26 +1289,26 @@ plot(fit1_sqrt , se=TRUE , col="red")
 In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictors. None of them has a degree of freedom in the fit. We obtain the following result:
 
 ```{r GAM2, fig.width=5,fig.height=3}
-fit2 = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_ori)
-printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
-pred2 = predict(fit2, newdata=x_test_ori)
-accuracy = mean(abs(y_test_ori - pred2)/y_test_ori<=0.05)
-printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
-plot(fit2 , se=TRUE , col="red")
-
-fit2_log = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_log)
-printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
-pred2 = predict(fit2, newdata=x_test_log)
-accuracy = mean(abs(y_test_log - pred2)/y_test_log<=0.05)
-printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
-plot(fit2_log , se=TRUE , col="red")
-
-fit2_sqrt = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_sqrt)
-printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
-pred2 = predict(fit2, newdata=x_test_sqrt)
-accuracy = mean(abs(y_test_sqrt - pred2)/y_test_sqrt<=0.05)
-printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
-plot(fit2_sqrt , se=TRUE , col="red")
+# fit2 = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_ori)
+# printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
+# pred2 = predict(fit2, newdata=x_test_ori)
+# accuracy = mean(abs(y_test_ori - pred2)/y_test_ori<=0.05)
+# printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
+# plot(fit2 , se=TRUE , col="red")
+# 
+# fit2_log = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_log)
+# printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
+# pred2 = predict(fit2, newdata=x_test_log)
+# accuracy = mean(abs(y_test_log - pred2)/y_test_log<=0.05)
+# printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
+# plot(fit2_log , se=TRUE , col="red")
+# 
+# fit2_sqrt = gam(SalePrice ~ LotFrontage + YearRemodAdd + s(MasVnrArea), data = train_sqrt)
+# printf("Deviance of Model 2 approximately %.2f", deviance(fit2))
+# pred2 = predict(fit2, newdata=x_test_sqrt)
+# accuracy = mean(abs(y_test_sqrt - pred2)/y_test_sqrt<=0.05)
+# printf("Accuracy of Model 2 approximately %.2f%%", accuracy*100)
+# plot(fit2_sqrt , se=TRUE , col="red")
 ```
 
 3) GAM3
@@ -1319,26 +1316,26 @@ plot(fit2_sqrt , se=TRUE , col="red")
 In this model, we have LotFrontage, YearRemodAdd and MasVnrArea as predictorswith LotFrontage having a degree of freedom of 3. We obtain the following result:
 
 ```{r GAM3, fig.width=5,fig.height=3}
-fit3 = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_ori)
-printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
-pred3 = predict(fit3, newdata=x_test_ori)
-accuracy = mean(abs(y_test_ori - pred3)/y_test_ori<=0.05)
-printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
-plot(fit3 , se=TRUE , col="red")
-
-fit3_log = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_log)
-printf("Deviance of Model 3 approximately %.2f", deviance(fit3_log))
-pred3 = predict(fit3_log, newdata=x_test_log)
-accuracy = mean(abs(y_test_log - pred3)/y_test_log<=0.05)
-printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
-plot(fit3_log, se=TRUE , col="red")
-
-fit3_sqrt = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_sqrt)
-printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
-pred3 = predict(fit3_sqrt, newdata=x_test_sqrt)
-accuracy = mean(abs(y_test_sqrt - pred3)/y_test_sqrt<=0.05)
-printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
-plot(fit3_sqrt , se=TRUE , col="red")
+# fit3 = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_ori)
+# printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
+# pred3 = predict(fit3, newdata=x_test_ori)
+# accuracy = mean(abs(y_test_ori - pred3)/y_test_ori<=0.05)
+# printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+# plot(fit3 , se=TRUE , col="red")
+# 
+# fit3_log = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_log)
+# printf("Deviance of Model 3 approximately %.2f", deviance(fit3_log))
+# pred3 = predict(fit3_log, newdata=x_test_log)
+# accuracy = mean(abs(y_test_log - pred3)/y_test_log<=0.05)
+# printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+# plot(fit3_log, se=TRUE , col="red")
+# 
+# fit3_sqrt = gam(SalePrice ~ ns(LotFrontage,3) + YearRemodAdd + s(MasVnrArea), data = train_sqrt)
+# printf("Deviance of Model 3 approximately %.2f", deviance(fit3))
+# pred3 = predict(fit3_sqrt, newdata=x_test_sqrt)
+# accuracy = mean(abs(y_test_sqrt - pred3)/y_test_sqrt<=0.05)
+# printf("Accuracy of Model 3 approximately %.2f%%", accuracy*100)
+# plot(fit3_sqrt , se=TRUE , col="red")
 ```
 
 GAM Summary
@@ -1346,9 +1343,9 @@ GAM Summary
 We then take an ANOVA test to understand which model is the best and we have the following result:
 
 ```{r GAMSummary}
-anova(fit1,fit2,fit3,test="F")
-anova(fit1_log,fit2_log,fit3_log,test="F")
-anova(fit1_sqrt,fit2_sqrt,fit3_sqrt,test="F")
+# anova(fit1,fit2,fit3,test="F")
+# anova(fit1_log,fit2_log,fit3_log,test="F")
+# anova(fit1_sqrt,fit2_sqrt,fit3_sqrt,test="F")
 ```
 We can see that from the anova test that P-value for the second model is the smallest, therefore, it is the most preferred.  
 
@@ -1357,79 +1354,15 @@ We can see that from the anova test that P-value for the second model is the sma
 Then, we conduct a cross-validation on the second model only. 
 
 ```{r GAMCV}
-set.seed(123) 
-
-pander(data.frame( R2 = R2(pred2, y_test_ori), 
-            RMSE = RMSE(pred2, y_test_ori), 
-            MAE = MAE(pred2, y_test_ori)), title="Cross Validation of Model 2")
+# set.seed(123) 
+# 
+# pander(data.frame( R2 = R2(pred2, y_test_ori), 
+#             RMSE = RMSE(pred2, y_test_ori), 
+#             MAE = MAE(pred2, y_test_ori)), title="Cross Validation of Model 2")
 ```
 
 
 
-### 6. Splines (Jingfeng)
-
-#### Cross Validation
-
-### 7. Linear Regression (Yanze)
-
-```{r LRPreparModel1}
-lm_model = lm(formula = SalePrice ~.,data = train)
-summary(lm_model)
-```
-
-```{r LRPreparModel2}
-# Multiple R-squared: 0.9475, 
-# Adjusted R-squared: 0.9345  
-# F-statistic:  73.09  on 289 and 1170 DF, 
-# p-value: < 2.2e-16
-
-lm_pred = predict(lm_model, newdata = as.data.frame(test))
-#lm_pred  = exp(lm_pred)
-#result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
-```
-
-#### Cross Validation
-
-### 8. Ensemble
-
-## Classifcation Methods
-
-For classification method, we have separate the values of SalesPrice based on our mean, and we choose to use SVM with different kernels to make the prediction. 
-
-### 1. Support Vector Machine
-```{r svmlinear}
-library(e1071)
-svmfit=svm(SalePrice~., data=train_cl , kernel="linear", cost=10, scale=FALSE)
-svmfit
-```
-
-```{r svmlinearCV}
-tune.out=tune(svm,SalePrice~., data=train_cl,kernel="linear",
-ranges=list(cost=c(1,5,10) ))
-summary(tune.out)
-```
-
-```{r svmpoly}
-svmfit=svm(SalePrice~., data=train_cl , kernel="polynomial", cost=10, scale=FALSE)
-svmfit
-```
-
-```{r svmpolyCV}
-tune.out=tune(svm,SalePrice~., data=train_cl,kernel="polynomial",
-ranges=list(cost=c(1,5,10) ))
-summary(tune.out)
-```
-
-```{r svmradial}
-svmfit=svm(SalePrice~., data=train_cl , kernel="radial", cost=10, scale=FALSE)
-svmfit
-```
-
-```{r svmradialCV}
-tune.out=tune(svm,SalePrice~., data=train_cl,kernel="radial",
-ranges=list(cost=c(1,5,10) ))
-summary(tune.out)
-```
 
 
 # Evaluation of different models
@@ -1437,6 +1370,9 @@ summary(tune.out)
 Root MSE
 
 # Choose best fit model
+
+# Conclusion
+1. Classfication 
 
 # Discussion & Future Development
 
