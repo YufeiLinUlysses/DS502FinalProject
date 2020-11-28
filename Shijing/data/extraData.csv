@@ -1,27 +1,26 @@
-Alias,Neighborhood,Crime Index (National Avg = 1.0),Crime Rate,Perc of WhiteCollar,Median Income,CollegeDegree,Comments
- Blmngtn,Bloomington Heights,0.58,low,75%,"$91,238 ",88%,
-       Blueste,Bluestem,0.76,low,89%,"$87,636 ",86%,
-       BrDale,Briardale,1.12,Medium,82%,"$34,258 ",63%,
-       BrkSide,Brookside,0.77,low,74%,"$46,530 ",72%,
-       ClearCr,Clear Creek,0.62,low,89%,"$86,452 ",82%,quite neighborhood
-       CollgCr,College Creek,0.79,low,91%,"$39,359 ",91%,
-       Crawfor,Crawford,0.72,low,85%,"$86,452 ",84%,
-       Edwards,Edwards,0.86,medium,61%,"$46,530 ",63%,________
-       Gilbert,Gilbert,0.56,low,55%,"$82,976 ",75%,Small town north of Ames (15mins drive)
-       IDOTRR,Iowa DOT and Rail Road,1.12,Medium,62%,"$53,672 ",68%,Downtown area
-       MeadowV,Meadow Village,0.49,low,82%,"$69,709 ",83%,"Southeast of Ames, close to Mitchel"
-       Mitchel,Mitchell,0.53,low,75%,"$73,557 ",62%,"Mitchell Elementary School (4.8/5), far away from the city (suburb area)"
-       Names,North Ames,0.93,medium,75%,"$47,499 ",75%,North of IOWA State. U
-       NoRidge,Northridge,0.46,low,85%,"$105,583 ",89%,"Very north of Ames, rich neighborhood"
-       NPkVill,Northpark Villa,0.93,medium,85%,"$47,499 ",78%,
-       NridgHt,Northridge Heights,0.58,low,75%,"$105,583 ",89%,"Very north of Ames, rich neighborhood"
-       NWAmes,Northwest Ames,0.62,low,89%,"$87,636 ",86%,
-       OldTown,Old Town,0.93,medium,84%,"$38,223 ",85%,
-       SWISU,South & West of Iowa State University,0.9,medium,100%,"$51,183 ",83%,school area
-       Sawyer,Sawyer,0.68,low,64%,"$54,928 ",87%,
-       SawyerW,Sawyer West,0.68,low,64%,"$54,928 ",73%,
-       Somerst,Somerset,0.58,low,75%,"$95,487 ",75%,
-       StoneBr,Stone Brook,0.58,low,75%,"$105,583 ",75%,"Very north of Ames, rich neighborhood"
-       Timber,Timberland,0.6,low,71%,"$77,726 ",85%,
-       Veenker,Veenker,0.63,low,75%,"$77,726 ",81%,
-,,,,,,,
+Alias,Neighborhood,CrimeIndex,CrimeRate,PercOfWhiteCollar,MedianIncome,CollegeDegree,Comments
+ Blmngtn,Bloomington Heights,0.58,low,0.75,77726,0.88,
+Blueste,Bluestem,0.76,low,0.89,87636,0.86,
+BrDale,Briardale,1.12,Medium,0.82,33258,0.63,
+BrkSide,Brookside,0.77,low,0.74,46530,0.72,
+ClearCr,Clear Creek,0.62,low,0.89,86452,0.82,quite neighborhood
+CollgCr,College Creek,0.79,low,0.91,39359,0.91,
+Crawfor,Crawford,0.72,low,0.85,86452,0.84,
+Edwards,Edwards,0.86,medium,0.61,46530,0.63,________
+Gilbert,Gilbert,0.56,low,0.55,82976,0.75,Small town north of Ames (15mins drive)
+IDOTRR,Iowa DOT and Rail Road,1.12,Medium,0.62,39678,0.68,Downtown area
+MeadowV,Meadow Village,0.86,low,0.82,32965,0.83,"Southeast of Ames, close to Mitchel"
+Mitchel,Mitchell,0.64,low,0.75,73557,0.62,"Mitchell Elementary School (4.8/5), far away from the city (suburb area)"
+NAmes,North Ames,0.93,medium,0.75,47499,0.75,North of IOWA State. U
+NoRidge,Northridge,0.46,low,0.85,121583,0.89,"Very north of Ames, rich neighborhood"
+NPkVill,Northpark Villa,0.87,medium,0.85,47499,0.78,
+NridgHt,Northridge Heights,0.58,low,0.75,105583,0.89,"Very north of Ames, rich neighborhood"
+NWAmes,Northwest Ames,0.62,low,0.89,87636,0.86,
+OldTown,Old Town,0.93,medium,0.84,41223,0.85,
+SWISU,South & West of Iowa State University,0.91,medium,1.00,51183,0.83,school area
+Sawyer,Sawyer,0.68,low,0.64,54928,0.87,
+SawyerW,Sawyer West,0.68,low,0.64,68542,0.73,
+Somerst,Somerset,0.58,low,0.75,95487,0.75,
+StoneBr,Stone Brook,0.58,low,0.75,105583,0.75,"Very north of Ames, rich neighborhood"
+Timber,Timberland,0.6,low,0.71,85268,0.85,
+Veenker,Veenker,0.63,low,0.75,85268,0.81,
