@@ -82,7 +82,7 @@ Given that our data is aimed at predicting Sale Price of a house, it is unreason
 We have chosen to eliminate the Id column from this dataset because Id has nothing to do with our prediction and would mess up our prediction. We save data in "train.csv"" from Kaggle into a variable named \textbf{HousePricing} for further processing and we will separate it into training and testing set. For each model Bootstrapping will be performed before each model's training process.   
 
 ```{r readData}
-HousePricing = read.csv("./SourceData/train.csv")
+HousePricing = read.csv("./SourceData/train_new.csv")
 HousePricing = subset(HousePricing,select=-Id)
 ```
 
@@ -100,116 +100,18 @@ paste("The number of duplicated rows are", nrow(HousePricing) - nrow(unique(Hous
 ```
 
 ```{r numOfNumericAndFactors}
-print("Number of Factors:")
-sum(sapply(HousePricing[,1:80],typeof) == "character")
-print("Number of Numeric:")
-sum(sapply(HousePricing[,1:80],typeof) == "integer")
-```
-```{r summaryOfData}
-pander(summary(HousePricing[,sapply(HousePricing[,1:80],typeof) == "integer"]))
-```
+a = sum(sapply(HousePricing[,1:80],typeof) == "character")
+printf("Number of Factors: %i", a)
 
-
-
-```{r visualization}
-# data visualization
-cat.var = names(HousePricing)[which(sapply(HousePricing, is.character))]
-num.var = names(HousePricing)[which(sapply(HousePricing, is.numeric))]
-train.num = HousePricing[num.var]
-train.cat = HousePricing[cat.var]
-
-## Bar plot/Density plot function
-
-## Bar plot function
-
-plotHist <- function(data_in, i) 
-{
-  data <- data.frame(x=data_in[[i]])
-  p <- ggplot(data=data, aes(x=factor(x))) + stat_count() + xlab(colnames(data_in)[i]) + theme_light() + 
-    theme(axis.text.x = element_text(angle = 90, hjust =1))
-  return (p)
-}
-
-## Density plot function
-
-plotDen <- function(data_in, i){
-  data <- data.frame(x=data_in[[i]], SalePrice = data_in$SalePrice)
-  p <- ggplot(data= data) + geom_line(aes(x = x), stat = 'density', size = 1,alpha = 1.0) +
-    xlab(paste0((colnames(data_in)[i]), '\n', 'Skewness: ',round(skewness(data_in[[i]], na.rm = TRUE), 2))) + theme_light() 
-  return(p)
-  
-}
-
-## Function to call both Bar plot and Density plot function
-
-doPlots <- function(data_in, fun, ii, ncol=3) 
-{
-  pp <- list()
-  for (i in ii) {
-    p <- fun(data_in=data_in, i=i)
-    pp <- c(pp, list(p))
-  }
-  do.call("grid.arrange", c(pp, ncol=ncol))
-}
+printf("Number of Numeric: %d", sum(sapply(HousePricing[,1:80],typeof) == "integer"))
 
 ```
 
-```{r plotting}
-# barplots for categorical features
-doPlots(train.cat, fun = plotHist, ii = 1:4, ncol = 2)
-
-doPlots(train.cat, fun = plotHist, ii = 5:8, ncol = 2)
-
-doPlots(train.cat, fun = plotHist, ii = 9:12, ncol = 2)
-
-doPlots(train.cat, fun = plotHist, ii = 13:18, ncol = 2)
-
-doPlots(train.cat, fun = plotHist, ii = 19:22, ncol = 2)
-```
-
-```{r plot}
-
-# boxplots
-
-ggplot(HousePricing, aes(x = Neighborhood, y = SalePrice)) +
-  geom_boxplot() +
-  geom_hline(aes(yintercept=80), 
-             colour='red', linetype='dashed', lwd=2) +
-  scale_y_continuous(labels=dollar_format()) +
-  theme_few()
-
-# conclusion: boxplot between the neighboorhoods and sale price shows that BrookSide and 
-# South & West of Iowa State University have cheap houses. 
-# While Northridge and Northridge Heights are rich neighborhoods with several outliers in terms of price.
-
-# density plots for numeric variables
-doPlots(train.num, fun = plotDen, ii = 2:6, ncol = 2)
-doPlots(train.num, fun = plotDen, ii = 7:12, ncol = 2)
-doPlots(train.num, fun = plotDen, ii = 13:17, ncol = 2)
-
-# Conclusion: Density plots of the features indicates that the features are skewed. 
-# The denisty plot for YearBuilt shows that the data set contains a mix of new and old houses. 
-# It shows a downturn in the number of houses in recent years, possibily due to the housing crisis.
-
-doPlots(train.num, fun = plotHist, ii = 18:23, ncol = 2)
-
-# Conclusion: The histograms below show that majority of the houses have 2 full baths, 0 half baths, 
-# and have an average of 3 bedrooms.
-
-# Explore correlation
-
-correlation = cor(na.omit(train.num))
-row_indic = apply(correlation, 1, function(x) sum(x > 0.3 | x < -0.3) > 1)
-correlation = correlation[row_indic,row_indic]
-corrplot(correlation,method = "shade")
-
-```
-
-### target varaible vs. predictors
+### Target Varaible vs. Predictors
 
 ```{r targetvspredictors}
 summary(HousePricing$SalePrice)
-quantile(HousePricing$SalePrice)
+summary(HousePricing$GrLivArea)
 hist(HousePricing$SalePrice,col="blue",breaks = 25,main = "Distribution of SalePrice", xlab = "Sale Price")
 ```
 
@@ -219,11 +121,23 @@ It deviates from normal distribution and it is right skewed
 
 ### Plotting 'GrLivArea' too see if there are any outliers
 
-```{r outlier}
+```{r outlier, fig.width=5, fig.height=3}
 qplot(GrLivArea, SalePrice, data= HousePricing,col=GrLivArea>4000,xlab = "GrLivArea", ylab="Sale Price",main = "Living Area vs. Sale Price")
 
-summary(HousePricing$GrLivArea)
+
 hist(HousePricing$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main = "Frequency of Living area square feet")
+```
+
+### Average Price of Each Neighborhood
+
+```{r avgPrice}
+nSalesPrice = HousePricing[,c("Neighborhood","SalePrice")]
+avgPriceN = aggregate(nSalesPrice[, 2], list(nSalesPrice$Neighborhood), mean)
+ggplot(avgPriceN, aes(x=Group.1, y=x)) + 
+  geom_bar(stat = "identity") +
+  coord_flip() + scale_fill_brewer(palette = "Set1") +
+  theme(legend.position="none")
+
 ```
 
 ## Feature Engineering
@@ -372,25 +286,25 @@ HousePricing$MSSubClass=recode(HousePricing$MSSubClass,'20' = '1-STORY 1946+',
 Correlation between the numerical variables
 
 ```{r corNum}
-# draw a plot of correlation between numerical variables in original data
-#which(sapply(HousePricing, is.numeric))
-numericVars = which(sapply(HousePricing, is.numeric))#numericVars
-factorVars = which(sapply(HousePricing, is.factor))
-numVar = HousePricing[,numericVars]
-cor_numVar =(cor(numVar))
-cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
-#cor_sorted
-CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
-cor_numVar <- cor_numVar[CorHigh, CorHigh]
-corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-
-# draw a importance plot of all predictors in the original data
-set.seed(2018)
-quick_RF <- randomForest(x=HousePricing[,-78], y=HousePricing$SalePrice, ntree=100,importance=TRUE)
-imp_RF <- importance(quick_RF)
-imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
-imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
-ggplot(imp_DF[1:15,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+# # draw a plot of correlation between numerical variables in original data
+# #which(sapply(HousePricing, is.numeric))
+# numericVars = which(sapply(HousePricing, is.numeric))#numericVars
+# factorVars = which(sapply(HousePricing, is.factor))
+# numVar = HousePricing[,numericVars]
+# cor_numVar =(cor(numVar))
+# cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+# #cor_sorted
+# CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+# cor_numVar <- cor_numVar[CorHigh, CorHigh]
+# corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+# 
+# # draw a importance plot of all predictors in the original data
+# set.seed(2018)
+# quick_RF <- randomForest(x=HousePricing[,-78], y=HousePricing$SalePrice, ntree=100,importance=TRUE)
+# imp_RF <- importance(quick_RF)
+# imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+# imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+# ggplot(imp_DF[1:15,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
 
 ```
 ```{r ffe}
@@ -481,6 +395,7 @@ sqrtHousePCl = toFac(sqrtHouseP)
 ```
 
 
+
 ```{r prepareNewData, fig.width=5,fig.height=3}
 # numvar = which(sapply(combined_data, is.numeric))
 # catvar = which(sapply(combined_data, is.factor))
@@ -516,6 +431,47 @@ newOriHousePCl = bsF(oriHousePCl, 1234)
 newLogHousePCl = bsF(logHousePCl, 1234)
 newSqrtHousePCl = bsF(sqrtHousePCl, 1234)
 ```
+
+## PCA
+
+In order to reduce the dimension convincing by finding a proper Manifold, we apply PCA method. Fortunately, we successfully reduced the dimension from 216 to no more than 32. 32 PCs have totally 99.997% of variance proportion. 29 PCs are enough for totally getting 85% of variance proportion.
+
+```{r PCA}
+# x_train_ori.pr = prcomp(x_train_ori)
+# print(summary(x_train_ori.pr))
+```
+
+In the summary we can find all variance proportions behind 32th PC are 0, which means 32 PCs are totally enough important to describe all features of the original data. In fact, we can take less than 32 PCs and
+find the best number of PCs with cross validation in training process.
+The sum of (0.1627, 0.1073, 0.105, 0.07973, 0.05255, 0.05155, 0.03586, 0.03352, 0.03141, 0.02978, 0.02679, 0.02574, 0.02376, 0.02327, 0.02185, 0.02102, 0.01885, 0.01826, 0.01709, 0.01591, 0.01533, 0.01396, 0.01287, 0.0110, 0.01046, 0.00921, 0.00687, 0.00639, 0.00596, 0.00374, 0.00187, 0.00037) is  0.99997, which means 32 PCs totally have 99.997% of variance proportion. Moreover, 29 PCs are enough for totally getting 85% of variance proportion.
+```{r pcaplot1}
+# plot(x_train_ori.pr,type = "l", main = NULL)
+```
+
+In this plot, you can see an elbow at 7. Perhaps it can be a good number of PCs.
+
+```{r pcaplot2}
+y = list(0.1627, 0.1073, 0.105, 0.07973, 0.05255, 0.05155, 0.03586, 0.03352, 0.03141, 0.02978, 0.02679, 0.02574, 0.02376, 0.02327, 0.02185, 0.02102, 0.01885, 0.01826, 0.01709, 0.01591, 0.01533, 0.01396, 0.01287, 0.0110, 0.01046, 0.00921, 0.00687, 0.00639, 0.00596, 0.00374, 0.00187, 0.00037)
+x = c(1:32)
+plot(x,y, type="l")
+```
+
+This is generated by plotting all variance proportions of 32 PCs. We can see the elbow at 7 more clearly than the previous one. However, the square of tail on the right side of 7 is quite thick, which means maybe a number on the tail can be the best one for training. Last but not least, the exact best number can only be revealed by cross validation.
+
+```{r newdata}
+# New data list cleansed by PCA size of 868*32, which can take the place of original data. 
+# Each column is one PC, PC's importance decreases by column number.
+# Try CV on number of PC you drop from right to left and know how many PCs are best to use.
+# newdata = x_train_ori.pr$x[,1:32]
+# print(nrow(x_train_ori))
+# print(ncol(x_train_ori))
+# print(nrow(newdata))
+# print(ncol(newdata))
+# print(newdata[,1]) # 1st PCA, the most important PC
+# print(newdata[,32]) # 32th PCA, the least important PC
+```
+
+This is to show the effect of dimension reduction and how can we take and use the new data modified by PCA method.
 
 
 ## Seperate into Test and Training Set
@@ -575,41 +531,6 @@ y_test_sqrt = as.numeric(y_test_sqrt)
 summary(y_train_sqrt)
 ```
 
-```{r oriTestTrainCl, include=FALSE}
-test_ori_cl = read.csv("./SourceData/test_original_cl.csv")
-y_test_ori_cl = test_ori_cl$SalePrice
-x_test_ori_cl = subset (test_ori_cl, select = -SalePrice)
-train_ori_cl = read.csv("./SourceData/train_original_cl.csv")
-y_train_ori_cl = train_ori_cl$SalePrice
-x_train_ori_cl = subset (train_ori_cl, select = -SalePrice)
-y_train_ori_cl = as.factor(y_train_ori_cl)
-y_test_ori_cl = as.factor(y_test_ori_cl)
-summary(y_train_ori_cl)
-```
-
-```{r logTestTrainCl, include=FALSE}
-test_log_cl = read.csv("./SourceData/test_original_cl.csv")
-y_test_log_cl = test_log_cl$SalePrice
-x_test_log_cl = subset (test_log_cl, select = -SalePrice)
-train_log_cl = read.csv("./SourceData/train_original_cl.csv")
-y_train_log_cl = train_log_cl$SalePrice
-x_train_log_cl = subset (train_log_cl, select = -SalePrice)
-y_train_log_cl = as.factor(y_train_log_cl)
-y_test_log_cl = as.factor(y_test_log_cl)
-summary(y_train_ori_cl)
-```
-
-```{r sqrtTestTrainCl, include=FALSE}
-test_sqrt_cl = read.csv("./SourceData/test_original_cl.csv")
-y_test_sqrt_cl = test_sqrt_cl$SalePrice
-x_test_sqrt_cl = subset (test_sqrt_cl, select = -SalePrice)
-train_sqrt_cl = read.csv("./SourceData/train_original_cl.csv")
-y_train_sqrt_cl = train_sqrt_cl$SalePrice
-x_train_sqrt_cl = subset (train_sqrt_cl, select = -SalePrice)
-y_train_sqrt_cl = as.factor(y_train_sqrt_cl)
-y_test_sqrt_cl = as.factor(y_test_sqrt_cl)
-summary(y_train_ori_cl)
-```
 
 # Prediction Algorithms
 
@@ -730,12 +651,15 @@ pander(rfTrain)
 
 #### Check Accuracy
 
-We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the $\pm 5\%$ range. The following is the result. 
+We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the given range. The following is the result. 
 
 ```{r rfAccuracy}
+rfYhat_train = predict(rfTrain, newdata=x_train_ori)
+accuracy = mean(((y_train_ori - rfYhat_train)/y_train_ori<=0.2) & ((y_train_ori - rfYhat_train)/y_train_ori>=-0.05))
+printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
 rfYhat = predict(rfTrain, newdata=x_test_ori)
 #table(y_test, rfYhat)
-accuracy = mean(abs(y_test_ori - rfYhat)/y_test_ori<=0.05)
+accuracy = mean(((y_test_ori - rfYhat)/y_test_ori<=0.2) & ((y_test_ori - rfYhat)/y_test_ori>=-0.05))
 printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
 ```
 
