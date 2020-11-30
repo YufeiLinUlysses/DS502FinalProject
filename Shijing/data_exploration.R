@@ -18,7 +18,7 @@ dim(HousePricing)
 sum(sapply(HousePricing[,1:81],typeof) == "character")
 sum(sapply(HousePricing[,1:81],typeof) == "integer")
 
-summary(train[,sapply(HousePricing[,1:81],typeof) == "integer"])
+summary(HousePricing[,sapply(HousePricing[,1:81],typeof) == "integer"])
 
 # The number of columns and rows
 paste("Original training data set has",dim(HousePricing)[1], "rows and", dim(HousePricing)[2], "columns")
@@ -158,3 +158,22 @@ summary(HousePricing$GrLivArea)
 png("./GrLiveAreaHist.png")
 hist(HousePricing$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main = "Frequency of Living area square feet")
 dev.off()
+
+
+nSalesPrice = HousePricing[,c("Neighborhood","SalePrice")]
+avgPriceN = aggregate(nSalesPrice[, 2], list(nSalesPrice$Neighborhood), mean)
+ggplot(avgPriceN, aes(x=Group.1, y=x)) + 
+  geom_bar(stat = "identity") +
+  coord_flip() + scale_fill_brewer(palette = "Set1") +
+  theme(legend.position="none")
+
+
+extraData = read.csv("./data/extraData.csv")
+head(extraData)
+
+df1.len = seq(dim(HousePricing)[1])
+
+for (i in df1.len) {
+  print(i)
+}
+print(count)

@@ -1,0 +1,855 @@
+---
+title: "House Pricing Prediction"
+subtitle: "DS502 Final Project"
+author: "Yufei Lin, Jingfeng Xia, Jinhong Yu, Shijing Yang, Yanze Wang"
+date: "Nov 29 2020"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+# check R version
+R.Version()$major
+
+# set up document
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+knitr::opts_chunk$set(fig.width=5,fig.height=3)
+library(pander)
+library(knitr)
+library(skimr)
+library(kableExtra)
+library(tinytex)
+library(dplyr)
+library(purrr)
+library(knitr)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(corrplot)
+library(caret)
+library(gridExtra)
+library(scales)
+library(Rmisc)
+library(ggrepel)
+library(randomForest)
+library(psych)
+library(xgboost)
+local({
+  hook_inline = knitr::knit_hooks$get('inline')
+  knitr::knit_hooks$set(inline = function(x) {
+    res = hook_inline(x)
+    if (is.numeric(x)) sprintf('$%s$', res) else res
+  })
+})
+
+# define printf function
+printf <- function(...)print(sprintf(...))
+```
+
+```{r libraries, include=FALSE}
+# Import model libraries
+library(pls)
+library(randomForest)
+library(gam)
+library(glmnet)
+library(ggplot2)
+library(corrplot)
+library(tidyverse)
+library(caret)
+library(mgcv)
+library(Metrics)
+library(visreg)
+library(boot)
+library('ggthemes') 
+library('scales')
+library('mice')
+library('data.table')
+library('gridExtra') 
+library('GGally')
+library('e1071')
+```
+
+# Introduction
+
+## Description of the Problem
+
+Being able to predict the price of a house tends to be an important skill for both the seller and consumers. For the seller, they could make better sales and consumers could have better understanding when they try to make a purchase. Therefore, in this project, we are planning to make prediction of house price based on the 79 different predictors provided by Kaggle dataset to determine values of residential homes in Ames, Iowa. We have noticed Sale Price has a typical right-skewed distribution, and decided to process it using two ways, logrithmic with base $e$ and square root for a distribution that is much closer to the shape of a Gaussian distribution for better performance in models like linear regression. In this analysis, we will perform random forest on original y-value for importance of variables and all the rest of models on both absolute and processed y-values to see which way would each model do better and provide an ensemble of models at the end of our study. 
+
+## Description of the Dataset
+
+In terms of the dataset, the entire data set consists of two pieces of data organized as training data set and test data set respectively. Whereas for each of the dataset, approximately 80 columns corresponding parameters would be evaluated with the prediction of house price. Some noteworthy predictors include the location classification, utilities, environment of neighborhood, house style and condition, area, year of built, and number of functioning rooms. There are over 1400 row of data points in both the training data set and the test data set. The sale prices in the train dataset are given as a parameter in the form of five or six figure full flat integers. The test data set will be applied to different regression models in order to distinguish the disparities of different model performances. 
+    
+## Approaches
+
+Given that our data is aimed at predicting Sale Price of a house, it is unreasonable to require a model to fit the exact value of the dataset but only to reach an estimation within a certain range. Therefore, we have decided to use both regression and classification approaches to look at the problem on both the original and processed value. For regression method, we are going to look at if a prediction is within the range of the actual price $\pm 5\%$, we will say it is an accurate prediction. For classification prediction, we will be tagging the data into several different groups, and would be fitting the threshold accordingly with models like SVM and K-Means clustering. 
+
+# Data Processing
+
+## Read in Data
+
+We have chosen to eliminate the Id column from this dataset because Id has nothing to do with our prediction and would mess up our prediction. We save data in "train.csv"" from Kaggle into a variable named \textbf{HousePricing} for further processing and we will separate it into training and testing set. For each model Bootstrapping will be performed before each model's training process.   
+
+```{r readData}
+setwd("~/OneDrive - Worcester Polytechnic Institute (wpi.edu)/2020Fall/DS502/DS502FinalProject/")
+HousePricing = read.csv("./SourceData/train_new.csv")
+HousePricing = subset(HousePricing,select=-Id)
+
+```
+
+## Data Exploration
+
+```{r dimensionOfData}
+# The number of columns and rows
+paste("Original training data set has",dim(HousePricing)[1], "rows and", dim(HousePricing)[2], "columns")
+
+# # The percentage of data missing in train
+# paste("The percentage of data missing in the original training data set is ", round(sum(is.na(HousePricing)) / (nrow(HousePricing) *ncol(HousePricing)),4)*100,"%",sep = "")
+
+# The number of duplicated rows
+paste("The number of duplicated rows are", nrow(HousePricing) - nrow(unique(HousePricing)))
+```
+
+```{r numOfNumericAndFactors}
+paste("Number of Categorical Predictors:",sum(sapply(HousePricing[,1:84],typeof) == "character"))
+
+paste("Number of Numeric Predictors:",dim(HousePricing)[2]-sum(sapply(HousePricing[,1:84],typeof) == "character")-1)
+
+paste("Number of target label:", 1)
+
+```
+```{r summaryOfData}
+#pander(summary(HousePricing[,sapply(HousePricing[,1:80],typeof) == "integer"]))
+```
+
+
+### target varaible vs. predictors
+
+```{r targetvspredictors}
+summary(HousePricing$SalePrice)
+hist(HousePricing$SalePrice,col="blue",breaks = 25,main = "Distribution of SalePrice", xlab = "Sale Price")
+```
+
+\textbf{Conclusion}
+
+It deviates from normal distribution and it is right skewed
+
+### Plotting 'GrLivArea' too see if there are any outliers
+
+```{r outlier}
+# hist(HousePricing$GrLivArea,breaks = 20,xlab="Living area",col = "dark red",main = "Frequency of Living area square feet")
+```
+
+```{r correlation}
+
+numericVars <- which(sapply(HousePricing, is.numeric)) #index vector numeric variables
+numericVarNames <- names(numericVars) #saving names vector for use later on
+# cat('There are', length(numericVars), 'numeric variables')
+
+all_numVar <- HousePricing[, numericVars]
+cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
+
+#sort on decreasing correlations with SalePrice
+cor_sorted <- as.matrix(sort(cor_numVar[,'SalePrice'], decreasing = TRUE))
+ #select only high corelations
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
+```
+\textbf{Conclusion}
+The correlation graph above shows that the predictors that have 0.5 or greater correlation with our target variable SalePrice. By looking at the plot above, we can see that 2 out of 4 columns that are newly added seem to have descent correlation with our target variable. According to the plot, neighborhoods with higher median income residents tend to have higher price houses. This scenario totally makes sense since people with higher income tend to be able to afford a more expensive house in general. Also, crime index of a neighborhood seems to play an important role in deciding the house price of that area on average. The higher crime index an area has, the lower of the house price it tends to have. However, it also becomes clear that there are multicollinearity issues in our data set. For example, predictor GarageCars and GarageArea are strongly correlated (0.89) as well as predictor CrimeIndex and MedianIncome (-0.8), and they are all relatively strongly correlated to the SalePrice predictor. 
+
+# Overall Quality
+
+```{r overall quality}
+ggplot(data=HousePricing[!is.na(HousePricing$SalePrice),], aes(x=factor(OverallQual), y=SalePrice))+
+        geom_boxplot(col='blue') + labs(x='Overall Quality') +
+        scale_y_continuous(breaks= seq(0, 800000, by=100000), labels = comma)
+```
+\textbf{Conclusion}
+Overall Quality is the predictor that is the most strongly correlated with target SalesPrice. As we can see the graph above, it is clear a upward curve and proves its positive correlation with SalePrice.
+
+```{R LivingArea outliers}
+qplot(HousePricing$GrLivArea, HousePricing$SalePrice,col=HousePricing$GrLivArea>4500,xlab = "Ground Living Area (sqft)",ylab = "SalePrice")
+
+pander(HousePricing[HousePricing$GrLivArea > 4500,][c("GrLivArea", "OverallQual","SalePrice")])
+
+```
+\textbf{Conclusion}
+Predictor "Ground Living Area" is the second most important numeric feature for SalePrice. We plotted a scatter plot for this predictor versus sale price. As we can see from the plot, there are two points that appear to be outliers since the living area of both houses are big but having relatively low prices. However, sometimes houses with poor quality can also lead to low prices. In order to further explore these two houses, we also plotted the overall quality of these two houses. According to the table, they are both listed as 10 in terms of quality. So we can basically make an assumption that these two points are outliers and it is relatively safe to remove these points from the data set.
+
+## Feature Engineering
+
+In this section, we convert all missing value based on the following rules:
+
+\begin{enumerate}
+\item Categorical: fill in most common
+\item Numeric: fill in median/average
+\end{enumerate}
+
+Convert all train to HousePricing
+
+```{r simplePlot}
+# ggplot(HousePricing,aes(x=GrLivArea,y=SalePrice))+geom_point()
+```
+```{r featuerEngineering, include=FALSE}
+# remove ID column
+HousePricing$Id = NULL
+HousePricing = HousePricing[HousePricing$GrLivArea<4500,]
+
+# for using later
+numericVars <- which(sapply(HousePricing, is.numeric))
+numericVarNames <- names(numericVars) 
+
+# LotFrontage
+# compute the median of neighbor, na.rm means compute medians without NA
+paste("There are",dim(HousePricing[is.na(HousePricing$LotFrontage),])[1],"rows with NAs in LotFrontage column")
+neighbor_Median  = HousePricing %>%
+  select(LotFrontage, Neighborhood) %>%
+  group_by(Neighborhood) %>%
+  summarise(LotFrontage = median(LotFrontage, na.rm = T))
+print(neighbor_Median)
+
+# replace the LotFrontage NA with its neighbor's Lotfrontage's median.
+for (i in 1:nrow(HousePricing))
+{
+  if(is.na(HousePricing$LotFrontage[i])){
+               HousePricing$LotFrontage[i] <- as.integer(median(HousePricing$LotFrontage[HousePricing$Neighborhood==HousePricing$Neighborhood[i]], na.rm=TRUE)) 
+        }
+}
+
+# Alley, NA means no alley.
+HousePricing$Alley[HousePricing$Alley==""] = 'None'
+HousePricing$Alley = as.factor(HousePricing$Alley)
+
+# For utilites, there are two NAs, one row in one category, and the rest all share the same category
+# Therefore we remove the entire column
+table(HousePricing$Utilities)
+HousePricing$Utilities = NULL
+
+# Pool variables are the ones with most NAs
+# 1. Assign NAs to None (suppose those houses do not have a pool)
+table(HousePricing$PoolQC)
+HousePricing$PoolQC[HousePricing$PoolQC==""] = "None"
+
+# 2. Change it to Ordinal (scale them into numbers)
+HousePricing$PoolQC=recode(HousePricing$PoolQC,'None' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+
+# Fence
+HousePricing$Fence[HousePricing$Fence==""] = "None"
+HousePricing$Fence = as.factor(HousePricing$Fence)
+
+# Miscellaneous features
+HousePricing$MiscFeature[HousePricing$MiscFeature==""] = "None"
+HousePricing$MiscFeature = as.factor(HousePricing$MiscFeature)
+
+
+
+# garage
+# replace NAs with the year that the house was built
+HousePricing$GarageYrBlt[is.na(HousePricing$GarageYrBlt)] <- HousePricing$YearBuilt[is.na(HousePricing$GarageYrBlt)]
+# garage type dost not seem to be ordinal, then convert to factors
+HousePricing$GarageType[HousePricing$GarageType==""] = "None"
+HousePricing$GarageType = as.factor(HousePricing$GarageType)
+
+# convert to ordinals
+HousePricing$GarageFinish[HousePricing$GarageFinish==""] = "None"
+HousePricing$GarageFinish=recode(HousePricing$GarageFinish,'None' = 0,'Unf' = 1,'RFn' = 2,'Fin' = 3)
+HousePricing$GarageQual[HousePricing$GarageQual==""] = "None"
+HousePricing$GarageQual=recode(HousePricing$GarageQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$GarageCond[HousePricing$GarageCond==""] = "None"
+HousePricing$GarageCond=recode(HousePricing$GarageCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$FireplaceQu[HousePricing$FireplaceQu==""] = "None"
+HousePricing$FireplaceQu=recode(HousePricing$FireplaceQu,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+
+#electric
+# only one missing value, convert it to most common type
+HousePricing$Electrical[HousePricing$Electrical==""] = "SBrkr"
+HousePricing$Electrical = as.factor(HousePricing$Electrical)
+
+# basement
+length(which(HousePricing$BsmtQual=="" & HousePricing$BsmtCond=="" & HousePricing$BsmtExposure=="" & HousePricing$BsmtFinType1=="" & HousePricing$BsmtFinType2==""))
+HousePricing[!HousePricing$BsmtCond=="" & (HousePricing$BsmtFinType1==""|HousePricing$BsmtQual==""|HousePricing$BsmtExposure==""|HousePricing$BsmtFinType2==""), c('BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2')]
+HousePricing$BsmtFinType2[333] = names(sort(table(HousePricing$BsmtFinType2),decreasing = TRUE))[1]
+HousePricing$BsmtExposure[949] = names(sort(table(HousePricing$BsmtExposure),decreasing = TRUE))[1]
+
+# convert to ordinal 
+HousePricing$BsmtExposure[HousePricing$BsmtExposure==""] = 'None'
+HousePricing$BsmtExposure=recode(HousePricing$BsmtExposure,'None' = 0,'No' = 1,'Mn' = 2,'Av' = 3,'Gd' = 4)
+HousePricing$BsmtQual[HousePricing$BsmtQual==""] = 'None'
+HousePricing$BsmtQual=recode(HousePricing$BsmtQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$BsmtCond[HousePricing$BsmtCond==""] = 'None'
+HousePricing$BsmtCond=recode(HousePricing$BsmtCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
+HousePricing$BsmtFinType1[HousePricing$BsmtFinType1==""] = 'None'
+HousePricing$BsmtFinType1=recode(HousePricing$BsmtFinType1,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5, 'GLQ' = 6)
+HousePricing$BsmtFinType2[HousePricing$BsmtFinType2==""] = 'None'
+HousePricing$BsmtFinType2=recode(HousePricing$BsmtFinType2,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5, 'GLQ' = 6)
+
+# Mas
+# missing value set to none
+HousePricing$MasVnrType[HousePricing$MasVnrType==""] = 'None'
+HousePricing$MasVnrType = as.factor(HousePricing$MasVnrType)
+HousePricing$MasVnrArea[(is.na(HousePricing$MasVnrArea))] = 0
+
+
+# MS Zoning
+# categorical --> factor
+HousePricing$MSZoning = as.factor(HousePricing$MSZoning)
+
+# street
+
+# categorical --> factor
+HousePricing$Street = as.factor(HousePricing$Street)
+HousePricing$LotShape=recode(HousePricing$LotShape,'IR3' = 0,'IR2' = 1,'IR1' = 2,'Reg' =2)
+HousePricing$LotConfig = as.factor(HousePricing$LotConfig)
+
+
+# House condition
+HousePricing$Condition1 = as.factor(HousePricing$Condition1)
+HousePricing$Condition2 = as.factor(HousePricing$Condition2)
+
+# categorical
+HousePricing$LandContour = as.factor(HousePricing$LandContour)
+
+
+# categorical
+HousePricing$RoofStyle = as.factor(HousePricing$RoofStyle)
+
+# ordinal
+HousePricing$LandSlope=recode(HousePricing$LandSlope,'Sev' = 0,'Mod' = 1,'Gtl' = 2)
+
+
+# categorical
+HousePricing$BldgType = as.factor(HousePricing$BldgType)
+HousePricing$HouseStyle=as.factor(HousePricing$HouseStyle)
+
+
+HousePricing$RoofMatl=as.factor(HousePricing$RoofMatl)
+HousePricing$Exterior1st=as.factor(HousePricing$Exterior1st)
+HousePricing$Exterior2nd=as.factor(HousePricing$Exterior2nd)
+HousePricing$ExterQual=recode(HousePricing$ExterQual,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+HousePricing$ExterCond=recode(HousePricing$ExterCond,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+HousePricing$Foundation = as.factor(HousePricing$Foundation)
+HousePricing$PavedDrive=recode(HousePricing$PavedDrive,'N' = 0,'P' = 1,'Y' = 2)
+HousePricing$Heating = as.factor(HousePricing$Heating)
+HousePricing$HeatingQC=recode(HousePricing$HeatingQC,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+HousePricing$CentralAir=recode(HousePricing$CentralAir,'N' = 0,'Y' = 1)
+
+# Kitchen variables
+HousePricing$KitchenQual=recode(HousePricing$KitchenQua,'Po' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
+
+
+HousePricing$Functional=recode(HousePricing$Functional,'Sal' = 0,'Sev' = 1,'Maj2' = 2,'Maj1' = 3,'Mod' = 4,'Min2' = 5,'Min1' = 6,'Typ' = 7)
+# Neighborhood 
+HousePricing$Neighborhood = as.factor(HousePricing$Neighborhood)
+# Sale type
+HousePricing$SaleType = as.factor(HousePricing$SaleType)
+# Sale condition
+HousePricing$SaleCondition = as.factor(HousePricing$SaleCondition)
+
+# drop month sold
+HousePricing$MoSold = NULL
+HousePricing$MSSubClass = as.factor(HousePricing$MSSubClass)
+# switch to factor 
+HousePricing$MSSubClass=recode(HousePricing$MSSubClass,'20' = '1-STORY 1946+',
+                               '30' = '1-STORY 1945-','40' = '1-STORY Unf Attic',
+                               '45' = "1/2 STORY Unf Attic",'50' = '1/2 STORY Fin',
+                               '60' = '2-STORY+','70' = '2-STORY 1945-','80' = 'SPLIT OR MULTI-LEVEL',
+                               '85' = 'SPLIT FOYER','90' = 'DUPLEX', '120' = '1-STORY PUD 1946+',
+                               '150' = '1/2 STORY PUD','160' = '2-STORY PUD 1946+',
+                               '180' = 'PUD - MULTILEVEL',' 190' = '2 FAMILY CONVERSION')
+
+
+
+
+```
+
+Correlation between the numerical variables
+
+```{r corNum}
+# draw a plot of correlation between numerical variables in original data
+#which(sapply(HousePricing, is.numeric))
+numericVars = which(sapply(HousePricing, is.numeric))#numericVars
+factorVars = which(sapply(HousePricing, is.factor))
+cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
+numVar = HousePricing[,numericVars]
+cor_numVar =(cor(numVar))
+cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+#cor_sorted
+# CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+# cor_numVar <- cor_numVar[CorHigh, CorHigh]
+# corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+
+# draw a importance plot of all predictors in the original data
+set.seed(2018)
+quick_RF <- randomForest(x=HousePricing[,-78], y=HousePricing$SalePrice, ntree=100,importance=TRUE)
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+ggplot(imp_DF[1:15,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+
+```
+```{r categorical predictors}
+n1 <- ggplot(HousePricing[!is.na(HousePricing$SalePrice),], aes(x=Neighborhood, y=SalePrice)) +
+        geom_bar(stat='summary', fun.y = "median", fill='blue') +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+        scale_y_continuous(breaks= seq(0, 800000, by=50000), labels = comma) +
+        geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3) +
+        geom_hline(yintercept=163000, linetype="dashed", color = "red")
+#dashed line is median SalePrice
+n2 <- ggplot(data=HousePricing, aes(x=Neighborhood)) +
+        geom_histogram(stat='count')+
+        geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3)+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grid.arrange(n1, n2)
+
+```
+
+
+```{r ffe}
+########################### further feature engineer ###################
+# whether remod 
+HousePricing$Remod = ifelse(HousePricing$YearBuilt == HousePricing$YearRemodAdd,0,1)
+# the age of house 
+HousePricing$Age = as.numeric(HousePricing$YrSold) - HousePricing$YearRemodAdd 
+
+# whether is new
+HousePricing$isnew = ifelse(HousePricing$YrSold == HousePricing$YearBuilt,1,0)
+# total area.
+HousePricing$TotalSqFeet = HousePricing$GrLivArea+HousePricing$TotalBsmtSF
+# count the totol number of bathroom in the hourse
+HousePricing$TotBathrooms <- HousePricing$FullBath + (HousePricing$HalfBath*0.5) + HousePricing$BsmtFullBath + (HousePricing$BsmtHalfBath*0.5)
+
+HousePricing$TotalPorchSF <- HousePricing$OpenPorchSF + HousePricing$EnclosedPorch + HousePricing$X3SsnPorch + HousePricing$ScreenPorch
+
+# par(mfrow=c(2,2))
+# ggplot(data=HousePricing[!is.na(HousePricing$SalePrice),], aes(x=Age, y=SalePrice))+
+#         geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+#         scale_y_continuous(breaks= seq(0, 800000, by=100000), labels = comma)
+# ggplot(all[!is.na(all$SalePrice),], aes(x=as.factor(Remod), y=SalePrice)) +
+#         geom_bar(stat='summary', fun.y = "median", fill='blue') +
+#         geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=6) +
+#         scale_y_continuous(breaks= seq(0, 800000, by=50000), labels = comma) +
+#         theme_grey(base_size = 18) +
+#         geom_hline(yintercept=163000, linetype="dashed") #dashed line is median SalePrice
+# 
+# ggplot(all[!is.na(all$SalePrice),], aes(x=as.factor(IsNew), y=SalePrice)) +
+#         geom_bar(stat='summary', fun.y = "median", fill='blue') +
+#         geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=6) +
+#         scale_y_continuous(breaks= seq(0, 800000, by=50000), labels = comma) +
+#         theme_grey(base_size = 18) +
+#         geom_hline(yintercept=163000, linetype="dashed") #dashed line is median SalePrice
+# 
+# ggplot(data=all[!is.na(all$SalePrice),], aes(x=TotalSqFeet, y=SalePrice))+
+#         geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+#         scale_y_continuous(breaks= seq(0, 800000, by=100000), labels = comma) +
+#         geom_text_repel(aes(label = ifelse(all$GrLivArea[!is.na(all$SalePrice)]>4500, rownames(all), '')))
+# # draw a correlation plot after combine some variable
+# numericVars = which(sapply(HousePricing, is.numeric))#numericVars
+# factorVars = which(sapply(HousePricing, is.factor))
+# numVar = HousePricing[,numericVars]
+# cor_numVar =(cor(numVar))
+# cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+# #cor_sorted
+# CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+# cor_numVar <- cor_numVar[CorHigh, CorHigh]
+# corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+
+# choose some true numerical variable to normalize(not include the encoded part)
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('MSSubClass', 'MoSold', 'YrSold', 'SalePrice', 'OverallQual', 'OverallCond'))]
+numericVarNames <- append(numericVarNames, c('Age', 'TotalPorchSF', 'TotBathrooms', 'TotalSqFeet'))
+
+# delete some highly correlated variables
+HousePricing = subset(HousePricing, select = -c(GrLivArea,ExterQual,GarageArea,X1stFlrSF,
+                                           TotRmsAbvGrd,TotalBsmtSF,GarageYrBlt,FullBath,
+                                           HalfBath,YearRemodAdd,BsmtHalfBath,BsmtFullBath,CrimeIndex))
+DFnumeric <- HousePricing[, names(HousePricing) %in% numericVarNames]
+DFfactors <- HousePricing[, !(names(HousePricing) %in% numericVarNames)]
+DFfactors <- DFfactors[, names(DFfactors) != 'SalePrice']
+
+########################## Normalizing the numerical data #########################
+predf = scale(DFnumeric,center = T,scale = T)
+
+```
+\textbf{Conclusion}
+After creating the variable "Age", as expected, there is a negative correlation between the age of the house and the price simply because older houses tend to be worth less than newer houses. 
+
+
+``` {r correlation2}
+# draw a correlation plot after combine some variable
+numericVars = which(sapply(HousePricing, is.numeric))#numericVars
+factorVars = which(sapply(HousePricing, is.factor))
+numVar = HousePricing[,numericVars]
+cor_numVar =(cor(numVar))
+cor_sorted = as.matrix(sort(cor_numVar[,"SalePrice"],decreasing = TRUE))
+#cor_sorted
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.5)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+
+
+p1 = ggplot(data=HousePricing[!is.na(HousePricing$SalePrice),], aes(x=Age, y=SalePrice))+
+        geom_point(col='light blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+        scale_y_continuous(breaks= seq(0, 800000, by=100000), labels = comma)
+p2 = ggplot(HousePricing[!is.na(HousePricing$SalePrice),], aes(x=as.factor(Remod), y=SalePrice)) +
+        geom_bar(stat='summary', fun.y = "median", fill='dark green') +
+        geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3) +
+        scale_y_continuous(breaks= seq(0, 800000, by=50000), labels = comma) +
+        theme_grey(base_size = 10) +
+        geom_hline(yintercept=163000, linetype="dashed") #dashed line is median SalePrice
+
+p3 = ggplot(HousePricing[!is.na(HousePricing$SalePrice),], aes(x=as.factor(isnew), y=SalePrice)) +
+        geom_bar(stat='summary', fun.y = "median", fill='dark green') +
+        geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3) +
+        scale_y_continuous(breaks= seq(0, 800000, by=50000), labels = comma) +
+        theme_grey(base_size = 10) +
+        geom_hline(yintercept=163000, linetype="dashed") #dashed line is median SalePrice
+
+p4 = ggplot(data=HousePricing[!is.na(HousePricing$SalePrice),], aes(x=TotalSqFeet, y=SalePrice))+
+        geom_point(col='dark red') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+        scale_y_continuous(breaks= seq(0, 800000, by=100000), labels = comma)
+
+# grid.arrange(p2,p3)
+grid.arrange(p1,                                    # bar plot spaning two columns
+             p2, p3,                               # box plot and scatter plot
+             ncol = 2, nrow = 4, 
+             layout_matrix = rbind(c(1,1), c(2,3)))
+p4
+```
+
+```{r to_csv}
+setwd("~/OneDrive - Worcester Polytechnic Institute (wpi.edu)/2020Fall/DS502/DS502FinalProject/")
+write.csv(HousePricing,"./Shijing/Shijing_all_original.csv", row.names = FALSE)
+```
+As discussed before, we have decided to use logrithmic with base $e$ and square root to process the data. We have also saved $15\%$ of our data into a variable named vault for the final test of each model. 
+
+```{r getFinalData}
+############ one-hot encoding and combine with scaled numerical data #######################################
+dfdummies = model.matrix(~.-1,DFfactors) %>% as.data.frame()
+newdata = cbind(predf,dfdummies)
+newdata$SalePrice = HousePricing$SalePrice
+
+set.seed(1)
+vault = sample(1:nrow(newdata), nrow(newdata)*0.15)
+dVault = newdata[vault,]
+newdata = newdata[-vault,]
+oriHouseP = newdata
+oriHouseP$SalePrice = newdata$SalePrice
+sumOri = summary(oriHouseP$SalePrice)
+sumOri
+logHouseP = newdata
+logHouseP$SalePrice = log(newdata$SalePrice)
+sumLog = summary(logHouseP$SalePrice)
+hist(logHouseP$SalePrice,col="blue")
+sumLog
+sqrtHouseP = newdata
+sqrtHouseP$SalePrice = '^'(newdata$SalePrice,1/4)
+sumSqrt = summary(sqrtHouseP$SalePrice)
+hist(sqrtHouseP$SalePrice,col="blue")
+sumSqrt
+```
+
+```{r toFactor}
+# toFac <- function(original){
+#   result = original
+#   result$SalePrice[which(result$SalePrice<=summary(original$SalePrice)["1st Qu."])] = 0
+#   result$SalePrice[which(result$SalePrice>=summary(original$SalePrice)["3rd Qu."])] = 2
+#   result$SalePrice[which(result$SalePrice<summary(original$SalePrice)["3rd Qu."] & result$SalePrice>summary(original$SalePrice)["1st Qu."])] = 1
+#   result$SalePrice = as.factor(result$SalePrice)
+#   print(summary(result$SalePrice))
+#   return(result)
+# }
+# 
+# oriHousePCl = toFac(oriHouseP)
+# logHousePCl = toFac(logHouseP)
+# sqrtHousePCl = toFac(sqrtHouseP)
+# ```
+
+
+```{r prepareNewData, fig.width=5,fig.height=3}
+# numvar = which(sapply(combined_data, is.numeric))
+# catvar = which(sapply(combined_data, is.factor))
+# numdata = combined_data[,numvar]
+# numcor =(cor(numdata))
+# corsorted = as.matrix(sort(numcor[,"SalePrice"],decreasing = TRUE))
+# CorHigh <- names(which(apply(corsorted, 1, function(x) abs(x)>0.5)))
+# numcor <- numcor[CorHigh, CorHigh]
+# corrplot.mixed(numcor, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+# temp = subset(combined_data,select=-SalePrice)
+# # standardize numerical data 
+# numeric = select_if(temp,is.numeric)
+# stnumer = scale(numeric,center = T,scale = T)
+# convFact = select_if(temp,is.factor)
+# # one hot
+# convFact = model.matrix(~.-1,convFact) %>% data.frame()
+# SalePrice = log(combined_data$SalePrice)
+# # put standardized numerical data and categorical data in one data?
+# newdata = cbind(stnumer,convFact,SalePrice)
+```
+
+```{r bootstrapingFunc, include=FALSE}
+bsF<- function(datadf, randomizer){
+  set.seed(randomizer)
+  sample = sample(dim(datadf)[1],dim(datadf)[1],replace = T)
+  btnewdata = datadf[sample,]
+  return(btnewdata)
+}
+newOriHouseP = bsF(oriHouseP, 1234)
+newLogHouseP = bsF(logHouseP, 1234)
+newSqrtHouseP = bsF(sqrtHouseP, 1234)
+newOriHousePCl = bsF(oriHousePCl, 1234)
+newLogHousePCl = bsF(logHousePCl, 1234)
+newSqrtHousePCl = bsF(sqrtHousePCl, 1234)
+```
+
+
+## Seperate into Test and Training Set
+
+Spearate by 70% train, 30% test. 
+
+```{r saveToCSV}
+toCsv <- function(df, fileName){
+  set.seed(10)
+  randS = sample(1:nrow(df), nrow(df)*0.7)
+  train = df[randS,]
+  test = df[-randS,]
+  write.csv(train,paste("./Shijing/train_",fileName, ".csv",sep=""), row.names = FALSE)
+  write.csv(test,paste("./Shijing/test_",fileName, ".csv",sep=""), row.names = FALSE)
+}
+
+toCsv(oriHouseP, "original")
+toCsv(logHouseP, "log")
+toCsv(sqrtHouseP, "sqrt")
+```
+
+
+
+```{r oriTestTrainReg, include=FALSE}
+# test_ori = read.csv("./Shijing/test_original.csv")
+# y_test_ori = test_ori$SalePrice
+# x_test_ori = subset (test_ori, select = -SalePrice)
+# train_ori = read.csv("./Shijing/train_original.csv")
+# y_train_ori = train_ori$SalePrice
+# x_train_ori = subset (train_ori, select = -SalePrice)
+# y_train_ori = as.numeric(y_train_ori)
+# y_test_ori = as.numeric(y_test_ori)
+# summary(y_train_ori)
+```
+
+```{r logTestTrainReg, include=FALSE}
+# test_log = read.csv("./Shijing/test_log.csv")
+# y_test_log = test_ori$SalePrice
+# x_test_log = subset (test_log, select = -SalePrice)
+# train_log = read.csv("./Shijing/train_log.csv")
+# y_train_log = train_log$SalePrice
+# x_train_log = subset (train_log, select = -SalePrice)
+# y_train_log = as.numeric(y_train_log)
+# y_test_log = as.numeric(y_test_log)
+# summary(y_train_log)
+```
+
+```{r sqrtTestTrainReg, include=FALSE}
+# test_sqrt = read.csv("./Shijing/test_sqrt.csv")
+# y_test_sqrt = test_sqrt$SalePrice
+# x_test_sqrt = subset (test_sqrt, select = -SalePrice)
+# train_sqrt = read.csv("./Shijing/train_sqrt.csv")
+# y_train_sqrt = train_sqrt$SalePrice
+# x_train_sqrt = subset (train_sqrt, select = -SalePrice)
+# y_train_sqrt = as.numeric(y_train_sqrt)
+# y_test_sqrt = as.numeric(y_test_sqrt)
+# summary(y_train_sqrt)
+```
+
+```{r oriTestTrainCl, include=FALSE}
+# test_ori_cl = read.csv("./Shijing/test_original_cl.csv")
+# y_test_ori_cl = test_ori_cl$SalePrice
+# x_test_ori_cl = subset (test_ori_cl, select = -SalePrice)
+# train_ori_cl = read.csv("./Shijing/train_original_cl.csv")
+# y_train_ori_cl = train_ori_cl$SalePrice
+# x_train_ori_cl = subset (train_ori_cl, select = -SalePrice)
+# y_train_ori_cl = as.factor(y_train_ori_cl)
+# y_test_ori_cl = as.factor(y_test_ori_cl)
+# summary(y_train_ori_cl)
+```
+
+```{r logTestTrainCl, include=FALSE}
+# test_log_cl = read.csv("./Shijing/test_original_cl.csv")
+# y_test_log_cl = test_log_cl$SalePrice
+# x_test_log_cl = subset (test_log_cl, select = -SalePrice)
+# train_log_cl = read.csv("./Shijing/train_original_cl.csv")
+# y_train_log_cl = train_log_cl$SalePrice
+# x_train_log_cl = subset (train_log_cl, select = -SalePrice)
+# y_train_log_cl = as.factor(y_train_log_cl)
+# y_test_log_cl = as.factor(y_test_log_cl)
+# summary(y_train_ori_cl)
+```
+
+```{r sqrtTestTrainCl, include=FALSE}
+# test_sqrt_cl = read.csv("./Shijing/test_original_cl.csv")
+# y_test_sqrt_cl = test_sqrt_cl$SalePrice
+# x_test_sqrt_cl = subset (test_sqrt_cl, select = -SalePrice)
+# train_sqrt_cl = read.csv("./Shijing/train_original_cl.csv")
+# y_train_sqrt_cl = train_sqrt_cl$SalePrice
+# x_train_sqrt_cl = subset (train_sqrt_cl, select = -SalePrice)
+# y_train_sqrt_cl = as.factor(y_train_sqrt_cl)
+# y_test_sqrt_cl = as.factor(y_test_sqrt_cl)
+# summary(y_train_ori_cl)
+```
+
+# Prediction Algorithms
+
+We choose to use PCR, Random Forest, GAM, Lasso and Ridge, Splines and Linear Regression to look at how each model would be suitable for our regression analysis. 
+
+Each model needs a cross validation algorithm
+Remember to report RMSE
+
+## Regression Methods
+
+### 1. Linear Regression 
+
+#### Explanation
+
+We have chosen this model to understand how each numeric variable is linear related to our House Price prediction.
+```{r lr ori}
+# ori
+# k = 5
+# lm_ori_accuracy = rep(0,k)
+# for (i in 1:k){
+#   set.seed(100+i)
+#   sample = sample(nrow(train_ori),nrow(train_ori),replace = T)
+#   ori_train = train_ori[sample,]
+#   train = sample(nrow(ori_train),0.7*nrow(ori_train))
+#   training_dataset = ori_train[train,]
+#   validation_dataset = ori_train[-train,]
+#   lm_ori_model = glm(formula = SalePrice ~.,data = training_dataset)
+#   lm_ori_pred = predict(lm_ori_model,newdata = validation_dataset)
+#   lm_ori_accuracy[i] = mean(abs((validation_dataset$SalePrice)- (lm_ori_pred))/(validation_dataset$SalePrice)<=0.05)
+# }
+# lm_ori_aver_accuracy = mean(lm_ori_accuracy)
+```
+
+```{r lr log}
+# k = 5
+# lm_log_accuracy = rep(0,k)
+# for (i in 1:k){
+#   set.seed(111+i)
+#   sample = sample(nrow(train_log),nrow(train_log),replace = T)
+#   log_train = train_log[sample,]
+#   train = sample(nrow(log_train),0.7*nrow(log_train))
+#   training_dataset = log_train[train,]
+#   validation_dataset = log_train[-train,]
+#   lm_log_model = glm(formula = SalePrice ~.,data = training_dataset)
+#   lm_log_pred = predict(lm_log_model,newdata = validation_dataset)
+#   lm_log_pred = exp(lm_log_pred)
+#   lm_log_accuracy[i] = mean(abs(exp(validation_dataset$SalePrice)-(lm_log_pred))/exp(validation_dataset$SalePrice)<=0.05)
+# }
+# lm_ori_aver_accuracy = mean(lm_ori_accuracy)
+```
+
+```{r lr sqrt}
+# lm_sqrt_accuracy = rep(0,k)
+# for (i in 1:k){
+#   set.seed(150+i)
+#   sample = sample(nrow(train_sqrt),nrow(train_sqrt),replace = T)
+#   sqrt_train = train_sqrt[sample,]
+#   train = sample(nrow(sqrt_train),0.7*nrow(sqrt_train))
+#   training_dataset = sqrt_train[train,]
+#   validation_dataset = sqrt_train[-train,]
+#   lm_sqrt_model = glm(formula = SalePrice ~.,data = training_dataset)
+#   lm_sqrt_pred = predict(lm_sqrt_model,newdata = validation_dataset)
+#   lm_sqrt_pred = lm_sqrt_pred^4
+#   lm_sqrt_accuracy[i] = mean(abs((validation_dataset$SalePrice)^4- (lm_sqrt_pred))/(validation_dataset$SalePrice)^4<=0.05)
+# }
+# lm_sqrt_aver_accuracy = mean(lm_sqrt_accuracy)
+```
+
+#### Check Accuracy
+
+```{r lr2}
+# Multiple R-squared: 0.9475, 
+# Adjusted R-squared: 0.9345  
+# F-statistic:  73.09  on 289 and 1170 DF, 
+# p-value: < 2.2e-16
+
+#accuracy for original 
+# lm_ori_accuracy
+# lm_ori_aver_accuracy
+# printf("We have the accuracy of the linear model approximately %.2f%%", lm_ori_aver_accuracy*100)
+# 
+# # accuracy for log
+# lm_log_accuracy
+# lm_log_aver_accuary = mean(lm_log_accuracy)
+# printf("We have the accuracy of the linear model after log transformation approximately %.2f%%", lm_log_aver_accuary*100)
+# 
+# ## accuracy for sqrt
+# lm_sqrt_accuracy
+# lm_sqrt_aver_accuracy = mean(lm_sqrt_accuracy)
+# printf("We have the accuracy of the linear model after sqrt transformation approximately %.2f%%", lm_sqrt_aver_accuracy*100)
+# 
+# lm_accuracy_df = data.frame(lm = c('accuracy'),ori_accuracy = c(lm_ori_aver_accuracy),
+#                                log_accuracy = c(lm_log_aver_accuary),
+#                                sqrt_accuracy = c(lm_sqrt_aver_accuracy))
+# #lm_pred  = exp(lm_pred)
+#result_lm_model = data.frame(Id = testing_data$Id, SalePrice = lm_pred)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

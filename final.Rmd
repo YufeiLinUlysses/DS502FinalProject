@@ -521,7 +521,7 @@ summary(y_train_ori)
 
 ```{r logTestTrainReg, include=FALSE}
 test_log = read.csv("./SourceData/test_log.csv")
-y_test_log = test_ori$SalePrice
+y_test_log = test_log$SalePrice
 x_test_log = subset (test_log, select = -SalePrice)
 train_log = read.csv("./SourceData/train_log.csv")
 y_train_log = train_log$SalePrice
@@ -683,25 +683,28 @@ pander(rfTrain_sqrt)
 
 We then need to check accuracy, as assumed before, we would look at whether the predicted data is within the given range. The following is the result. 
 
+1) Accuracy for predicting original Data
 ```{r rfAccuracy_ori}
-rfYhat = predict(rfTrain, newdata=x_test_ori)
+rfYhat_ori = predict(rfTrain_ori, newdata=x_test_ori)
 #table(y_test, rfYhat)
-accuracy = mean(((y_test_ori - rfYhat)/y_test_ori<=0.2) & ((y_test_ori - rfYhat)/y_test_ori>=-0.05))
-printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
+rf_accuracy_ori = mean(((y_test_ori - rfYhat_ori)/y_test_ori<=0.2) & ((y_test_ori - rfYhat_ori)/y_test_ori>=-0.05))
+printf("We have the accuracy of the model approximately %.2f%%", rf_accuracy_ori*100)
 ```
 
+2) Accuracy for predicting logged data
 ```{r rfAccuracy_log}
 rfYhat_log = predict(rfTrain_log, newdata=x_test_log)
 #table(y_test, rfYhat)
-accuracy = mean(((y_test_log - rfYhat_log)/y_test_log<=0.2) & ((y_test_log - rfYhat_log)/y_test_log>=-0.05))
-printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
+rf_accuracy_log = mean(((exp(y_test_log) - exp(rfYhat_log))/exp(y_test_log)<=0.2) & ((exp(y_test_log) - exp(rfYhat_log))/exp(y_test_log)>=-0.05))
+printf("We have the accuracy of the model approximately %.2f%%", rf_accuracy_log*100)
 ```
 
+3) Accuracy for predicting data taken a power of $\frac{1}{4}$
 ```{r rfAccuracy_sqrt}
-rfYhat = predict(rfTrain, newdata=x_test_ori)
+rfYhat_sqrt = predict(rfTrain_sqrt, newdata=x_test_sqrt)
 #table(y_test, rfYhat)
-accuracy = mean(((y_test_ori - rfYhat)/y_test_ori<=0.2) & ((y_test_ori - rfYhat)/y_test_ori>=-0.05))
-printf("We have the accuracy of the model approximately %.2f%%", accuracy*100)
+rf_accuracy_sqrt = mean(((y_test_sqrt^4 - rfYhat_sqrt^4)/y_test_sqrt^4<=0.2) & ((y_test_sqrt^4 - rfYhat_sqrt^4)/y_test_sqrt^4>=-0.05))
+printf("We have the accuracy of the model approximately %.2f%%", rf_accuracy_sqrt*100)
 ```
 
 #### Error Metrics
@@ -758,9 +761,12 @@ In the cross validation, we have chosen to look at $R^2$, RMSE and MAE.
 set.seed(123) 
   
 # computing model performance metrics 
-pander(data.frame( R2 = R2(rfYhat, y_test_ori), 
-            RMSE = RMSE(rfYhat, y_test_ori), 
-            MAE = MAE(rfYhat, y_test_ori)), title="Cross Validation for Random Forest")
+# pander(data.frame( R2 = R2(rfYhat, y_test_ori), 
+#             RMSE = RMSE(rfYhat, y_test_ori), 
+#             MAE = MAE(rfYhat, y_test_ori)), title="Cross Validation for Random Forest")
+x <- data.frame("y" = c("original","log","sqrt"), "Accuracy" = c(rf_accuracy_ori,rf_accuracy_log,rf_accuracy_sqrt), "R2" = c(R2(rfYhat_ori, y_test_ori),R2(exp(rfYhat_log), exp(y_test_log)),R2(rfYhat_sqrt^4, y_test_sqrt^4)),"RMSE" = c(RMSE(rfYhat_ori, y_test_ori),RMSE(exp(rfYhat_log), exp(y_test_log)),RMSE(rfYhat_sqrt^4, y_test_sqrt^4)))
+pander(x)
+
 ```
 
 ### 3. PCR (Iris)
@@ -815,9 +821,15 @@ printf("Columns num of training set after PCA: %i",ncol(newdata))
 
 This is to show the effect of dimension reduction and how can we take and use the new data modified by PCA method. 
 
-#### PCR
+### 3. PCR (Iris)
 
-```{r PCR}
+```{r PCA_description}
+set.seed(2)
+# Need help with PCA analysis
+# pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
+train.original = read.csv("./SourceData/train_original.csv")
+train_ori = train.original
+
 # PCA portion
 train = sample(dim(train_ori)[1],size = dim(train_ori)[1]*0.7)
 train.subset = train_ori[train,]
@@ -831,8 +843,8 @@ train.df = train.subset[train.bs,]
 pcaCharts <- function(x) {
   x.var <- x$sdev ^ 2
   x.pvar <- x.var/sum(x.var)
-  print("proportions of variance:")
-  print(x.pvar)
+  # print("proportions of variance:")
+  # print(x.pvar)
   
   par(mfrow=c(2,2))
   plot(x.pvar,xlab="Principal component", ylab="Proportion of variance explained", ylim=c(0,1), type='b',cex.lab=1, cex.axis=1.5, cex.main=1.5, cex.sub=1.5)
@@ -847,18 +859,31 @@ train.pca <- prcomp(x ,center = TRUE)
 pcaCharts(train.pca)
 
 ########################### insert an image  (pca_plot.png) #################################
-
+pcr_fit = pcr(SalePrice~., data = train.df,validation = "CV")
+# summary(pcr_fit)
 validationplot(pcr_fit, val.type = "MSEP",cex.lab=1, cex.axis=0.8, cex.main=1.5, cex.sub=0.8)
 axis(side = 1, at = c(32), cex.axis=0.8)
 abline(v = 32, col = "blue", lty = 5)
-abline(v = 26, col = "dark green", lty = 5)
-axis(side = 1, at = c(26), cex.axis=0.8)
-
 
 ########################### insert another image  (pcr_mse.png) #################################
 ```
+```{r graph1,echo=FALSE}
+pcaCharts(train.pca)
+```
 
-```{r pcr_original}
+\text The four graphs above show the variance explained for each component after doing PCA on our model. According to the graphs above, proportion of variance explained and variance are decreasing as number of components increases. Cumulative variance of the model increases as number of principal components increases. As we can see from the upper right graph, more than 90% of variance is explained when there are around 25 principal components. 
+
+Then we further explore the details of variance explained for each number of components. We found out that when there are 32 components, the variance explained will reach 100% and the variance will reach 90% when there are 19 components. Since we wanted to obtain as much variance as we could, but also trying to limit the number of predictors, we calculated the cross validation MSE for each number components in a pcr model to get a relatively ideal number of components. As we can see from the graph below, the cross validation MSE is the lowest when there are 28 components in the PCR model. Therefore we applied 19 components to test the result of our testing data set. 
+
+```{r graph2,echo=FALSE}
+validationplot(pcr_fit, val.type = "MSEP",cex.lab=1, cex.axis=0.8, cex.main=1.5, cex.sub=0.8)
+axis(side = 1, at = c(19), cex.axis=0.8)
+abline(v = 19, col = "blue", lty = 5)
+axis(side = 1, at = c(28), cex.axis=0.8)
+abline(v = 28, col = "dark green", lty = 5)
+```
+
+```{r pcr_original,include=FALSE,echo=FALSE}
 # start pcr
 
 pcr_fit = pcr(SalePrice~., data = train.df,validation = "CV")
@@ -876,7 +901,7 @@ rmse.ori = rmse(test$SalePrice,pcr_pred[,,32])
 
 ```
 
-``` {r pcr_log}
+``` {r pcr_log,include=FALSE}
 train.log = read.csv("./SourceData/train_log.csv")
 train_log = train.log
 set.seed(667)
@@ -895,7 +920,7 @@ rmse.log = rmse(exp(test$SalePrice),exp(pcr_pred[,,32]))
 
 ```
 
-``` {r pcr_sqrt}
+``` {r pcr_sqrt,include=FALSE}
 train.sqrt = read.csv("./SourceData/train_sqrt.csv")
 train_sqrt = train.sqrt
 
@@ -914,9 +939,9 @@ rsq.sqrt = rsq(test$SalePrice,pcr_pred[,,32])
 rmse.sqrt = rmse(test$SalePrice^4,pcr_pred[,,32]^4)
 ```
 
-#### Cross Validation
+#### Cross Validatio
 
-``` {r pcr_cv}
+``` {r pcr_cv,include=FALSE }
 x <- data.frame("y" = c("original","log","sqrt"), "Accuracy" = c(accuracy.ori,accuracy.log,accuracy.sqrt), "R2" = c(rsq.ori,rsq.log,rsq.sqrt),"RMSE" = c(rmse.ori,rmse.log,rmse.sqrt))
 pander(x)
 
