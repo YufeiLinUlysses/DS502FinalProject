@@ -1,0 +1,371 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={House Pricing Prediction},
+  pdfauthor={Yufei Lin, Jingfeng Xia, Jinhong Yu, Shijing Yang, Yanze Wang},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+
+\title{House Pricing Prediction}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{DS502 Final Project}
+\author{Yufei Lin, Jingfeng Xia, Jinhong Yu, Shijing Yang, Yanze Wang}
+\date{Nov 29 2020}
+
+\begin{document}
+\maketitle
+
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
+
+\hypertarget{description-of-the-problem}{%
+\subsection{Description of the
+Problem}\label{description-of-the-problem}}
+
+Being able to predict the price of a house tends to be an important
+skill for both the seller and consumers. For the seller, they could make
+better sales and consumers could have better understanding when they try
+to make a purchase. Therefore, in this project, we are planning to make
+prediction of house price based on the 79 different predictors provided
+by Kaggle dataset to determine values of residential homes in Ames,
+Iowa. We have noticed Sale Price has a typical right-skewed
+distribution, and decided to process it using two ways, logrithmic with
+base \(e\) and square root for a distribution that is much closer to the
+shape of a Gaussian distribution for better performance in models like
+linear regression. In this analysis, we will perform random forest on
+original y-value for importance of variables and all the rest of models
+on both absolute and processed y-values to see which way would each
+model do better and provide an ensemble of models at the end of our
+study.
+
+\hypertarget{description-of-the-dataset}{%
+\subsection{Description of the
+Dataset}\label{description-of-the-dataset}}
+
+In terms of the dataset, the entire data set consists of two pieces of
+data organized as training data set and test data set respectively.
+Whereas for each of the dataset, approximately 80 columns corresponding
+parameters would be evaluated with the prediction of house price. Some
+noteworthy predictors include the location classification, utilities,
+environment of neighborhood, house style and condition, area, year of
+built, and number of functioning rooms. There are over 1400 row of data
+points in both the training data set and the test data set. The sale
+prices in the train dataset are given as a parameter in the form of five
+or six figure full flat integers. The test data set will be applied to
+different regression models in order to distinguish the disparities of
+different model performances.
+
+\hypertarget{approaches}{%
+\subsection{Approaches}\label{approaches}}
+
+Given that our data is aimed at predicting Sale Price of a house, it is
+unreasonable to require a model to fit the exact value of the dataset
+but only to reach an estimation within a certain range. Therefore, we
+have decided to use both regression and classification approaches to
+look at the problem on both the original and processed value. For
+regression method, we are going to look at if a prediction is within the
+range of the actual price \(\pm 5\%\), we will say it is an accurate
+prediction. For classification prediction, we will be tagging the data
+into several different groups, and would be fitting the threshold
+accordingly with models like SVM and K-Means clustering.
+
+\hypertarget{data-processing}{%
+\section{Data Processing}\label{data-processing}}
+
+\hypertarget{read-in-data}{%
+\subsection{Read in Data}\label{read-in-data}}
+
+We have chosen to eliminate the Id column from this dataset because Id
+has nothing to do with our prediction and would mess up our prediction.
+We save data in ``train.csv''" from Kaggle into a variable named
+\textbf{HousePricing} for further processing and we will separate it
+into training and testing set. For each model Bootstrapping will be
+performed before each model's training process.
+
+\hypertarget{data-exploration}{%
+\subsection{Data Exploration}\label{data-exploration}}
+
+\begin{verbatim}
+## [1] "Original training data set has 1460 rows and 84 columns"
+\end{verbatim}
+
+\begin{verbatim}
+## [1] "The number of duplicated rows are 0"
+\end{verbatim}
+
+\begin{verbatim}
+## [1] "Number of Categorical Predictors: 43"
+\end{verbatim}
+
+\begin{verbatim}
+## [1] "Number of Numeric Predictors: 40"
+\end{verbatim}
+
+\begin{verbatim}
+## [1] "Number of target label: 1"
+\end{verbatim}
+
+\hypertarget{target-varaible-vs.-predictors}{%
+\subsubsection{target varaible
+vs.~predictors}\label{target-varaible-vs.-predictors}}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   34900  129975  163000  180921  214000  755000
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/targetvspredictors-1}
+
+\textbf{Conclusion}
+
+It deviates from normal distribution and it is right skewed
+
+\hypertarget{plotting-grlivarea-too-see-if-there-are-any-outliers}{%
+\subsubsection{Plotting `GrLivArea' too see if there are any
+outliers}\label{plotting-grlivarea-too-see-if-there-are-any-outliers}}
+
+\includegraphics{final_shijing_files/figure-latex/correlation-1}
+\textbf{Conclusion} The correlation graph above shows that the
+predictors that have 0.5 or greater correlation with our target variable
+SalePrice. By looking at the plot above, we can see that 2 out of 4
+columns that are newly added seem to have descent correlation with our
+target variable. According to the plot, neighborhoods with higher median
+income residents tend to have higher price houses. This scenario totally
+makes sense since people with higher income tend to be able to afford a
+more expensive house in general. Also, crime index of a neighborhood
+seems to play an important role in deciding the house price of that area
+on average. The higher crime index an area has, the lower of the house
+price it tends to have. However, it also becomes clear that there are
+multicollinearity issues in our data set. For example, predictor
+GarageCars and GarageArea are strongly correlated (0.89) as well as
+predictor CrimeIndex and MedianIncome (-0.8), and they are all
+relatively strongly correlated to the SalePrice predictor.
+
+\hypertarget{overall-quality}{%
+\section{Overall Quality}\label{overall-quality}}
+
+\includegraphics{final_shijing_files/figure-latex/overall quality-1}
+\textbf{Conclusion} Overall Quality is the predictor that is the most
+strongly correlated with target SalesPrice. As we can see the graph
+above, it is clear a upward curve and proves its positive correlation
+with SalePrice.
+
+\hypertarget{section}{%
+\subsection{\texorpdfstring{\includegraphics{final_shijing_files/figure-latex/LivingArea outliers-1}}{}}\label{section}}
+
+\begin{longtable}[]{@{}cccc@{}}
+\toprule
+~ & GrLivArea & OverallQual & SalePrice\tabularnewline
+\midrule
+\endhead
+\textbf{524} & 4676 & 10 & 184750\tabularnewline
+\bottomrule
+\end{longtable}
+
+\hypertarget{section-1}{%
+\subsection{\texorpdfstring{\textbf{1299} 5642 10
+160000}{1299 5642 10 160000}}\label{section-1}}
+
+\begin{verbatim}
+## [1] 37
+\end{verbatim}
+
+\textbf{Conclusion} Predictor ``Ground Living Area'' is the second most
+important numeric feature for SalePrice. We plotted a scatter plot for
+this predictor versus sale price. As we can see from the plot, there are
+two points that appear to be outliers since the living area of both
+houses are big but having relatively low prices. However, sometimes
+houses with poor quality can also lead to low prices. In order to
+further explore these two houses, we also plotted the overall quality of
+these two houses. According to the table, they are both listed as 10 in
+terms of quality. So we can basically make an assumption that these two
+points are outliers and it is relatively safe to remove these points
+from the data set.
+
+\hypertarget{feature-engineering}{%
+\subsection{Feature Engineering}\label{feature-engineering}}
+
+In this section, we convert all missing value based on the following
+rules:
+
+\begin{enumerate}
+\item Categorical: fill in most common
+\item Numeric: fill in median/average
+\end{enumerate}
+
+Convert all train to HousePricing
+
+Correlation between the numerical variables
+
+\begin{verbatim}
+## There are 58 numeric variables, and 24 categoric variables
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/corNum-1}
+
+\begin{verbatim}
+## No summary function supplied, defaulting to `mean_se()`
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/categorical predictors-1}
+
+\textbf{Conclusion} After creating the variable ``Age'', as expected,
+there is a negative correlation between the age of the house and the
+price simply because older houses tend to be worth less than newer
+houses.
+
+\includegraphics{final_shijing_files/figure-latex/correlation2-1}
+
+\begin{verbatim}
+## `geom_smooth()` using formula 'y ~ x'
+\end{verbatim}
+
+\begin{verbatim}
+## No summary function supplied, defaulting to `mean_se()`
+## No summary function supplied, defaulting to `mean_se()`
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/correlation2-2}
+
+\begin{verbatim}
+## `geom_smooth()` using formula 'y ~ x'
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/correlation2-3}
+
+As discussed before, we have decided to use logrithmic with base \(e\)
+and square root to process the data. We have also saved \(15\%\) of our
+data into a variable named vault for the final test of each model.
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   34900  130000  164250  181442  214925  755000
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/getFinalData-1}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   10.46   11.78   12.01   12.03   12.28   13.53
+\end{verbatim}
+
+\includegraphics{final_shijing_files/figure-latex/getFinalData-2}
+
+\begin{verbatim}
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   13.67   18.99   20.13   20.32   21.53   29.48
+\end{verbatim}
+
+\hypertarget{seperate-into-test-and-training-set}{%
+\subsection{Seperate into Test and Training
+Set}\label{seperate-into-test-and-training-set}}
+
+Spearate by 70\% train, 30\% test.
+
+\hypertarget{prediction-algorithms}{%
+\section{Prediction Algorithms}\label{prediction-algorithms}}
+
+We choose to use PCR, Random Forest, GAM, Lasso and Ridge, Splines and
+Linear Regression to look at how each model would be suitable for our
+regression analysis.
+
+Each model needs a cross validation algorithm Remember to report RMSE
+
+\hypertarget{regression-methods}{%
+\subsection{Regression Methods}\label{regression-methods}}
+
+\hypertarget{linear-regression}{%
+\subsubsection{1. Linear Regression}\label{linear-regression}}
+
+\hypertarget{explanation}{%
+\paragraph{Explanation}\label{explanation}}
+
+We have chosen this model to understand how each numeric variable is
+linear related to our House Price prediction.
+
+\hypertarget{check-accuracy}{%
+\paragraph{Check Accuracy}\label{check-accuracy}}
+
+\end{document}
