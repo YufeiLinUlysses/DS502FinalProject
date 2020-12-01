@@ -207,29 +207,29 @@ for (i in 1:nrow(HousePricing))
 }
 
 # Alley, NA means no alley.
-HousePricing$Alley[HousePricing$Alley==""] = 'None'
+HousePricing$Alley[is.na(HousePricing$Alley)] = 'None'
 HousePricing$Alley = as.factor(HousePricing$Alley)
 
 # For utilites, there are two NAs, one row in one category, and the rest all share the same category
 # Therefore we remove the entire column
-table(HousePricing$Utilities)
+# table(HousePricing$Utilities)
 HousePricing$Utilities = NULL
 
 # Pool variables are the ones with most NAs
 # 1. Assign NAs to None (suppose those houses do not have a pool)
 table(HousePricing$PoolQC)
-HousePricing$PoolQC[HousePricing$PoolQC==""] = "None"
+HousePricing$PoolQC[is.na(HousePricing$PoolQC)] = "None"
 
 # 2. Change it to Ordinal (scale them into numbers)
 HousePricing$PoolQC=recode(HousePricing$PoolQC,'None' = 0,'Fa' = 1,'TA' = 2,'Gd' = 3,'Ex' = 4)
 
 
 # Fence
-HousePricing$Fence[HousePricing$Fence==""] = "None"
+HousePricing$Fence[is.na(HousePricing$Fence)] = "None"
 HousePricing$Fence = as.factor(HousePricing$Fence)
 
 # Miscellaneous features
-HousePricing$MiscFeature[HousePricing$MiscFeature==""] = "None"
+HousePricing$MiscFeature[is.na(HousePricing$MiscFeature)] = "None"
 HousePricing$MiscFeature = as.factor(HousePricing$MiscFeature)
 
 
@@ -238,45 +238,45 @@ HousePricing$MiscFeature = as.factor(HousePricing$MiscFeature)
 # replace NAs with the year that the house was built
 HousePricing$GarageYrBlt[is.na(HousePricing$GarageYrBlt)] <- HousePricing$YearBuilt[is.na(HousePricing$GarageYrBlt)]
 # garage type dost not seem to be ordinal, then convert to factors
-HousePricing$GarageType[HousePricing$GarageType==""] = "None"
+HousePricing$GarageType[is.na(HousePricing$GarageType)] = "None"
 HousePricing$GarageType = as.factor(HousePricing$GarageType)
 
 # convert to ordinals
-HousePricing$GarageFinish[HousePricing$GarageFinish==""] = "None"
+HousePricing$GarageFinish[is.na(HousePricing$GarageFinish)] = "None"
 HousePricing$GarageFinish=recode(HousePricing$GarageFinish,'None' = 0,'Unf' = 1,'RFn' = 2,'Fin' = 3)
-HousePricing$GarageQual[HousePricing$GarageQual==""] = "None"
+HousePricing$GarageQual[is.na(HousePricing$GarageQual)] = "None"
 HousePricing$GarageQual=recode(HousePricing$GarageQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-HousePricing$GarageCond[HousePricing$GarageCond==""] = "None"
+HousePricing$GarageCond[is.na(HousePricing$GarageCond)] = "None"
 HousePricing$GarageCond=recode(HousePricing$GarageCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-HousePricing$FireplaceQu[HousePricing$FireplaceQu==""] = "None"
+HousePricing$FireplaceQu[is.na(HousePricing$FireplaceQu)] = "None"
 HousePricing$FireplaceQu=recode(HousePricing$FireplaceQu,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
 
 #electric
 # only one missing value, convert it to most common type
-HousePricing$Electrical[HousePricing$Electrical==""] = "SBrkr"
+HousePricing$Electrical[is.na(HousePricing$Electrical)] = "SBrkr"
 HousePricing$Electrical = as.factor(HousePricing$Electrical)
 
 # basement
-length(which(HousePricing$BsmtQual=="" & HousePricing$BsmtCond=="" & HousePricing$BsmtExposure=="" & HousePricing$BsmtFinType1=="" & HousePricing$BsmtFinType2==""))
-HousePricing[!HousePricing$BsmtCond=="" & (HousePricing$BsmtFinType1==""|HousePricing$BsmtQual==""|HousePricing$BsmtExposure==""|HousePricing$BsmtFinType2==""), c('BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2')]
+length(which(is.na(HousePricing$BsmtQual) & is.na(HousePricing$BsmtCond) & is.na(HousePricing$BsmtExposure) & is.na(HousePricing$BsmtFinType1) & is.na(HousePricing$BsmtFinType2)))
+HousePricing[!is.na(HousePricing$BsmtCond) & (is.na(HousePricing$BsmtFinType1)|is.na(HousePricing$BsmtQual)|is.na(HousePricing$BsmtExposure)|is.na(HousePricing$BsmtFinType2)), c('BsmtQual', 'BsmtCond', 'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2')]
 HousePricing$BsmtFinType2[333] = names(sort(table(HousePricing$BsmtFinType2),decreasing = TRUE))[1]
 HousePricing$BsmtExposure[949] = names(sort(table(HousePricing$BsmtExposure),decreasing = TRUE))[1]
 
 # convert to ordinal 
-HousePricing$BsmtExposure[HousePricing$BsmtExposure==""] = 'None'
+HousePricing$BsmtExposure[is.na(HousePricing$BsmtExposure)] = 'None'
 HousePricing$BsmtExposure=recode(HousePricing$BsmtExposure,'None' = 0,'No' = 1,'Mn' = 2,'Av' = 3,'Gd' = 4)
-HousePricing$BsmtQual[HousePricing$BsmtQual==""] = 'None'
+HousePricing$BsmtQual[is.na(HousePricing$BsmtQual)] = 'None'
 HousePricing$BsmtQual=recode(HousePricing$BsmtQual,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-HousePricing$BsmtCond[HousePricing$BsmtCond==""] = 'None'
+HousePricing$BsmtCond[is.na(HousePricing$BsmtCond)] = 'None'
 HousePricing$BsmtCond=recode(HousePricing$BsmtCond,'None' = 0,'Po' = 1,'Fa' = 2,'TA' = 3,'Gd' = 4,'Ex' = 5)
-HousePricing$BsmtFinType1[HousePricing$BsmtFinType1==""] = 'None'
+HousePricing$BsmtFinType1[is.na(HousePricing$BsmtFinType1)] = 'None'
 HousePricing$BsmtFinType1=recode(HousePricing$BsmtFinType1,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5, 'GLQ' = 6)
-HousePricing$BsmtFinType2[HousePricing$BsmtFinType2==""] = 'None'
+HousePricing$BsmtFinType2[is.na(HousePricing$BsmtFinType2)] = 'None'
 HousePricing$BsmtFinType2=recode(HousePricing$BsmtFinType2,'None' = 0,'Unf' = 1,'LwQ' = 2,'Rec' = 3,'BLQ' = 4,'ALQ' = 5, 'GLQ' = 6)
 
 # Mas
 # missing value set to none
-HousePricing$MasVnrType[HousePricing$MasVnrType==""] = 'None'
+HousePricing$MasVnrType[is.na(HousePricing$MasVnrType)] = 'None'
 HousePricing$MasVnrType = as.factor(HousePricing$MasVnrType)
 HousePricing$MasVnrArea[(is.na(HousePricing$MasVnrArea))] = 0
 
@@ -462,12 +462,12 @@ sumOri
 logHouseP = newdata
 logHouseP$SalePrice = log(newdata$SalePrice)
 sumLog = summary(logHouseP$SalePrice)
-hist(logHouseP$SalePrice)
+hist(logHouseP$SalePrice, col="blue", main="Histogram of Logged Sale Price")
 sumLog
 sqrtHouseP = newdata
 sqrtHouseP$SalePrice = '^'(newdata$SalePrice,1/4)
 sumSqrt = summary(sqrtHouseP$SalePrice)
-hist(sqrtHouseP$SalePrice)
+hist(sqrtHouseP$SalePrice, col="blue", main="Histogram of Forth Rooted Sale Price")
 sumSqrt
 ```
 
@@ -479,8 +479,8 @@ bsF<- function(datadf, randomizer){
   return(btnewdata)
 }
 newOriHouseP = bsF(oriHouseP, 1234)
-newLogHouseP = bsF(logHouseP, 1234)
-newSqrtHouseP = bsF(sqrtHouseP, 1234)
+newLogHouseP = bsF(logHouseP, 1111)
+newSqrtHouseP = bsF(sqrtHouseP, 1332)
 ```
 
 
@@ -707,41 +707,16 @@ rf_accuracy_sqrt = mean(((y_test_sqrt^4 - rfYhat_sqrt^4)/y_test_sqrt^4<=0.2) & (
 printf("We have the accuracy of the model approximately %.2f%%", rf_accuracy_sqrt*100)
 ```
 
-#### Error Metrics
-
-Then let us take a look at the MSE of this model: 
-```{r rfMSE}
-printf("We have the MSE of the model approximately equal to %.5f", mean((rfYhat-test_ori$SalePrice)^2))
-
-```
-
 #### Variable Importance
 
 Here we are going to show the top 10 most important variables in predicting sale price of a house.
 
 ```{r rfVarImportance1, fig.width=5,fig.height=3}
-importance = importance(rfTrain)
-varImportance = head(data.frame(Variables = row.names(importance),
- Importance =round(importance[, "%IncMSE"],1)),10)
-rankImportance=varImportance%>%mutate(Rank=paste('#',dense_rank(desc(Importance))))
-ggplot(rankImportance,aes(x=reorder(Variables,Importance),
- y=Importance,fill=Importance))+ 
- geom_bar(stat='identity') + 
- geom_text(aes(x = Variables, y = 0.5, label = Rank),
- hjust=0, vjust=0.55, size = 4, colour = 'white') +
- labs(x = 'Variables') +
- coord_flip() + 
- theme_classic()
-
-## another plot
-importance = importance(rfTrain)
+# another plot
+importance = importance(rfTrain_ori)
 importancedf =  data.frame(Variables = row.names(importance), MSE = importance[,1])
 importancedf <- importancedf[order(importancedf$MSE, decreasing = TRUE),]
-ggplot(importancedf[1:10,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
-
-
-
-
+ggplot(importancedf[1:10,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= 'Importance') + coord_flip() + theme(legend.position="none")
 ```
 
 
@@ -764,9 +739,9 @@ set.seed(123)
 # pander(data.frame( R2 = R2(rfYhat, y_test_ori), 
 #             RMSE = RMSE(rfYhat, y_test_ori), 
 #             MAE = MAE(rfYhat, y_test_ori)), title="Cross Validation for Random Forest")
-x <- data.frame("y" = c("original","log","sqrt"), "Accuracy" = c(rf_accuracy_ori,rf_accuracy_log,rf_accuracy_sqrt), "R2" = c(R2(rfYhat_ori, y_test_ori),R2(exp(rfYhat_log), exp(y_test_log)),R2(rfYhat_sqrt^4, y_test_sqrt^4)),"RMSE" = c(RMSE(rfYhat_ori, y_test_ori),RMSE(exp(rfYhat_log), exp(y_test_log)),RMSE(rfYhat_sqrt^4, y_test_sqrt^4)))
-pander(x)
-
+r2rf = c(R2(rfYhat_ori, y_test_ori),R2(exp(rfYhat_log), exp(y_test_log)),R2(rfYhat_sqrt^4, y_test_sqrt^4))
+rmserf = c(RMSE(rfYhat_ori, y_test_ori),RMSE(exp(rfYhat_log), exp(y_test_log)),RMSE(rfYhat_sqrt^4, y_test_sqrt^4))
+accrf = c(rf_accuracy_ori,rf_accuracy_log,rf_accuracy_sqrt)
 ```
 
 ### 3. PCR (Iris)
@@ -779,7 +754,7 @@ So far, our data totally has 216 columns of features (29 dense columns of numeri
 
 x_train_ori.pr = prcomp(x_train_ori) 
 
-print(summary(x_train_ori.pr)) 
+#print(summary(x_train_ori.pr)) 
 
 ``` 
 
@@ -825,11 +800,6 @@ This is to show the effect of dimension reduction and how can we take and use th
 
 ```{r PCA_description}
 set.seed(2)
-# Need help with PCA analysis
-# pcr.fit=pcr(SalePrice~., data=HousePricing, scale=TRUE, validation ="CV")
-train.original = read.csv("./SourceData/train_original.csv")
-train_ori = train.original
-
 # PCA portion
 train = sample(dim(train_ori)[1],size = dim(train_ori)[1]*0.7)
 train.subset = train_ori[train,]
@@ -863,10 +833,21 @@ pcr_fit = pcr(SalePrice~., data = train.df,validation = "CV")
 # summary(pcr_fit)
 validationplot(pcr_fit, val.type = "MSEP",cex.lab=1, cex.axis=0.8, cex.main=1.5, cex.sub=0.8)
 axis(side = 1, at = c(32), cex.axis=0.8)
-abline(v = 32, col = "blue", lty = 5)
+abline(v = 32, col = "blue", lty = 5) 
+
+
 
 ########################### insert another image  (pcr_mse.png) #################################
 ```
+
+\begin{figure}
+\includegraphics{pcr_mse.png}
+\end{figure}
+
+\begin{centering}
+Figure 3.1 .... 
+\end{centering}
+
 ```{r graph1,echo=FALSE}
 pcaCharts(train.pca)
 ```
