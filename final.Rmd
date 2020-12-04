@@ -88,7 +88,9 @@ We have chosen to eliminate the Id column from this dataset because Id has nothi
 
 ```{r readData}
 HousePricing = read.csv("./SourceData/train_new.csv")
+dim(HousePricing)
 HousePricing = subset(HousePricing,select=-Id)
+
 ```
 
 ## Data Exploration
@@ -934,7 +936,7 @@ pander(x)
 
 #### Explanation
 
-In our data, the number of the data is relatively small compared to the number of thr predictors, and we think there are some Multicollinearites within our predictors. All this would cause overfitting. In this circumstance, we think maybe linear regresion won¡¯t perform pretty well. To prevent the overfitting and increase the explanatory power of the model, We will try to use some Shrinkage methods, in this case, we would use Ridge Regression and Lasso Regression. 
+In our data, the number of the data is relatively small compared to the number of thr predictors, and we think there are some Multicollinearites within our predictors. All this would cause overfitting. In this circumstance, we think maybe linear regresion won??t perform pretty well. To prevent the overfitting and increase the explanatory power of the model, We will try to use some Shrinkage methods, in this case, we would use Ridge Regression and Lasso Regression. 
 
 Ridge regression is very similar to linear regression, both try to minimize the RSS, but ridge regression has a penalty term-with L2 regularization, this could help us to prevent overfitting in our model. 
 

@@ -62,6 +62,7 @@ pcaCharts(train.pca)
 Then we further explore the details of variance explained for each number of components. We found out that when there are 32 components, the variance explained will reach 100% and the variance will reach 90% when there are 19 components. Since we wanted to obtain as much variance as we could, but also trying to limit the number of predictors, we calculated the cross validation MSE for each number components in a pcr model to get a relatively ideal number of components. As we can see from the graph below, the cross validation MSE is the lowest when there are 28 components in the PCR model. Therefore we applied 28 components to test the result of our testing data set. 
 
 ```{r graph2,echo=FALSE}
+summary(pcr_fit)
 validationplot(pcr_fit, val.type = "MSEP",cex.lab=1, cex.axis=0.8, cex.main=1.5, cex.sub=0.8)
 axis(side = 1, at = c(19), cex.axis=0.8)
 abline(v = 19, col = "blue", lty = 5)
