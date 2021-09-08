@@ -21,12 +21,16 @@ In general, all columns provided are about the information and the facts of the 
 
 ## Evaluation of different models
 We then need to check accuracy, as assumed before, we would look at whether the difference between predicted SalePrice and true SalePrice is within the range we define as accurate prediction. And compare the three reuslts computed by different type of SalePrice. The following is the result. We will select the model with least R2 as a version of best model.
+
 ### R squared Error Metric
 <img width="864" alt="r1" src="https://user-images.githubusercontent.com/45746834/132552755-799ced86-81c0-4afa-87fe-b1b7f2d823bb.png">
+
 ### RMSE Error Metric
 <img width="854" alt="r2" src="https://user-images.githubusercontent.com/45746834/132552774-ab1a8fd5-5a31-4424-93a7-11917f5b0c16.png">
+
 ### Accuray Error Metric
 <img width="851" alt="r3" src="https://user-images.githubusercontent.com/45746834/132552786-dfa9a5e4-94d6-469d-9861-2902c162e226.png">
+
 ## Conclusion
 From our observation in the error metric tables, we realize that RMSE works best in describing which ones of our models works the best in predicting the y-values. It is because it helps to penalize larger errors, while R2 is not very decisive, and it could imply overfitting. Accuracy is an indicator that we created just to have an additional insight of how well the models perform. Thus, we take a closer look at RMSE for each model:
 1. Lasso works the best for Original y-value
