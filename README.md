@@ -19,3 +19,10 @@ In general, all columns provided are about the information and the facts of the 
 - **Please find code in [.Rmd](https://github.com/YufeiLinUlysses/DS502FinalProject/blob/main/Final_try.Rmd) format file written in R for more details.**
 - **For the entire report, feel free to navigate to [this page](https://github.com/YufeiLinUlysses/DS502FinalProject/blob/main/Final_Report.pdf) to view the final report.**
 
+## Evaluation of different models
+We then need to check accuracy, as assumed before, we would look at whether the difference between predicted SalePrice and true SalePrice is within the range we define as accurate prediction. And compare the three reuslts computed by different type of SalePrice. The following is the result. We will select the model with least R2 as a version of best model.
+<img width="864" alt="r1" src="https://user-images.githubusercontent.com/45746834/132552755-799ced86-81c0-4afa-87fe-b1b7f2d823bb.png">
+<img width="854" alt="r2" src="https://user-images.githubusercontent.com/45746834/132552774-ab1a8fd5-5a31-4424-93a7-11917f5b0c16.png">
+<img width="851" alt="r3" src="https://user-images.githubusercontent.com/45746834/132552786-dfa9a5e4-94d6-469d-9861-2902c162e226.png">
+<img width="354" alt="r4" src="https://user-images.githubusercontent.com/45746834/132552800-787e81c8-851e-4a30-9e7b-34c982dffbd5.png">
+
