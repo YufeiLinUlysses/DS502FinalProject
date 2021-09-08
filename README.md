@@ -39,3 +39,13 @@ We then, could say that Ridge is the one we would like to use for our final vali
 At the end, we pulled our test data out from the vault and performed Ridge Regression over fourth-root transformation, the final result is 0.93 of R-square, 20449.24 of RMSE and approximately 60% of accuracy.
 <img width="354" alt="r4" src="https://user-images.githubusercontent.com/45746834/132552800-787e81c8-851e-4a30-9e7b-34c982dffbd5.png">
 
+## Contributers
+Yufei Lin
+
+Shijing Yang
+
+Jingfeng Xia
+
+Jinhong Yu
+
+Yanze Wang
