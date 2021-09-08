@@ -40,12 +40,12 @@ At the end, we pulled our test data out from the vault and performed Ridge Regre
 <img width="354" alt="r4" src="https://user-images.githubusercontent.com/45746834/132552800-787e81c8-851e-4a30-9e7b-34c982dffbd5.png">
 
 ## Contributers
-Yufei Lin
+Yufei Lin | [Github](https://github.com/YufeiLinUlysses) | ylin9@wpi.edu
 
-Shijing Yang
+Shijing Yang | [Github](https://github.com/irisyeung0725) | syang6@wpi.edu
 
-Jingfeng Xia
+Jingfeng Xia | [Github](https://github.com/Jeffxia601) | jxia@wpi.edu
 
-Jinhong Yu
+Jinhong Yu | [Github](https://github.com/860844175) | jyu7@wpi.edu
 
 Yanze Wang
